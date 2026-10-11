@@ -32,6 +32,11 @@ Instala las siguientes herramientas:
 - Docker Engine y Docker Compose v2.
 - Git.
 
+El proyecto puede desarrollarse en Linux, macOS o Windows. En Windows se
+recomienda usar PowerShell y Docker Desktop con el backend WSL 2. Los comandos
+de .NET, pnpm y Docker Compose son los mismos en los tres sistemas; donde cambia
+la instrucción se indican las alternativas.
+
 Comprueba las versiones con:
 
 ```bash
@@ -49,12 +54,22 @@ git clone https://github.com/CuellarMarlon/timeblock.git
 cd timeblock
 ```
 
-Si utilizas nvm para gestionar Node.js, desde la raíz del repositorio ejecuta:
+Instala Node.js 24.21.0. Si usas nvm en Linux o macOS, desde la raíz ejecuta:
 
 ```bash
 nvm install
 nvm use
 ```
+
+En Windows, con nvm-windows, ejecuta en PowerShell:
+
+```powershell
+nvm install 24.21.0
+nvm use 24.21.0
+```
+
+También puedes instalar esa versión directamente desde el sitio oficial de
+Node.js o usar otro gestor de versiones compatible con tu sistema.
 
 Instala pnpm en la versión acordada. Con npm 11, autoriza los scripts de
 instalación de pnpm para este paquete:
@@ -67,10 +82,17 @@ Verifica que `pnpm --version` muestre `12.10.1`.
 
 ## Preparar las bases de datos locales
 
-Desde la raíz, crea la configuración local a partir del ejemplo:
+Desde la raíz, crea el archivo local de configuración a partir del ejemplo.
+En Linux o macOS:
 
 ```bash
 cp .env.example .env
+```
+
+En Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
 Puedes ajustar los valores de `.env` para tu computadora. Ese archivo es local y
