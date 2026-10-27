@@ -66,6 +66,9 @@ public sealed class ProgramaAcademico
             ProgramaAsignatura.Crear(Id, asignaturaId));
     }
 
+    public bool IncluyeAsignatura(Guid asignaturaId) =>
+        _asignaturas.Any(asociacion => asociacion.AsignaturaId == asignaturaId);
+
     private static string NormalizarTextoObligatorio(string valor, string nombreParametro)
     {
         if (string.IsNullOrWhiteSpace(valor))
