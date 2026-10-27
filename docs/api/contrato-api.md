@@ -70,13 +70,13 @@ Los valores se envían como cadenas sin tildes:
 - `tipoActividad`: `teoria`, `practica`, `laboratorio`.
 - `nivelComplejidad`: `bajo`, `medio`, `alto`.
 - `tipoPerfil`: `estudiante`, `coordinador`, `jefeDepartamento`.
-- `estado` inicial de horario M4: `borrador`.
+- `estadoHorario`: `generado` para los horarios constituidos durante M4. En la base de datos corresponde al estado `GENERADO`.
 
 ## Alcance M4
 
-Incluye personas y perfiles, autorizaciones de coordinadores por programa, programas, asignaturas, matrícula, bloques de contenido y horarios borrador.
+Incluye personas y perfiles, autorizaciones de coordinadores por programa, programas, asignaturas, matrícula, bloques de contenido y horarios armados manualmente con una fecha para cada bloque.
 
-No incluye generación automática, imparticiones con fecha/hora/aula, revisión y validación completa, asignación de horarios a estudiantes, asistencia, solicitudes de cambio, reportes ni consultas analíticas en ClickHouse. Estos puntos pertenecen a hitos posteriores.
+No incluye generación automática, completar horas/periodo/aula de las imparticiones, detección de conflictos de aulas, revisión y validación completa, asignación de horarios a estudiantes, asistencia, solicitudes de cambio, reportes ni consultas analíticas en ClickHouse. Esos puntos se completarán en hitos posteriores.
 
 ## Documentos por grupo
 
@@ -84,14 +84,15 @@ No incluye generación automática, imparticiones con fecha/hora/aula, revisión
 - [Programas y asignaturas](endpoints/programas-y-asignaturas.md)
 - [Matrículas](endpoints/matriculas.md)
 - [Bloques de contenido](endpoints/bloques.md)
-- [Horarios borrador](endpoints/horarios.md)
+- [Horarios de armado manual](endpoints/horarios.md)
 
 ## Decisiones de modelo que afectan al contrato
 
 1. Los UUID se generan en el servidor.
 2. Los perfiles de persona son excluyentes.
 3. La duplicidad técnica de bloques se define por asignatura, tipo de actividad y descripción normalizada: quitar espacios al inicio/final, colapsar espacios consecutivos e ignorar mayúsculas; los acentos se conservan. Detectar que dos descripciones distintas representan el mismo contenido se deja para una etapa posterior.
-4. Para crear un horario borrador se exige una autorización vigente del coordinador para el programa, con `puedeGenerar = true`.
-5. El contrato de borradores distingue selección de bloques de imparticiones. `BLOQUE_EN_HORARIO` en el diseño representa una impartición y requiere fecha, hora y aula; por tanto, no se usará para guardar una mera selección de bloques de M4. El modelo relacional debe representar esa selección por separado.
+4. Para crear el horario se exige una autorización vigente del coordinador para el programa, con `puedeGenerar = true`. El horario conserva la fecha de inicio de la autorización usada, junto con coordinador y programa.
+5. Durante M4, “borrador” es una descripción conceptual y no un estado persistido. El horario se almacena con estado `GENERADO`, que significa que está constituido. No se registra ni se distingue si se armó manualmente o mediante el algoritmo.
+6. M4 utiliza `BLOQUE_EN_HORARIO` para asociar horario, bloque y fecha, mediante la clave `(idHorario, idBloque, fecha)`. La fecha es obligatoria. En M4, `horaInicio`, `horaFin`, `periodoImp` e `idAula` pueden estar todos sin valor. Cuando se complete la impartición, los cuatro deben estar informados y debe cumplirse `horaInicio < horaFin`. La detección de conflictos de aula queda para un hito posterior. `cantTotalBloques` cuenta los bloques distintos asociados al horario, no las fechas en que aparecen.
 
 Las convenciones de rutas, paginación y códigos de respuesta se deben mantener sincronizadas con el documento OpenAPI cuando se implementen los endpoints.
