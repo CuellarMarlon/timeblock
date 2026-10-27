@@ -38,45 +38,6 @@ ScaffoldingReadMe.txt
 
 # dotenv environment variables file
 .env
-.env.*
-!.env.example
-!.env.*.example
-
-# Frontend dependencies and generated output (Node.js tooling)
-node_modules/
-dist/
-build/
-.next/
-.nuxt/
-.output/
-.angular/
-coverage/
-*.tsbuildinfo
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Local IDE and editor files
-.vscode/
-.idea/
-*.user
-*.suo
-*.swp
-*.swo
-
-# Operating system files
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# Local logs and database exports/backups
-*.log
-*.dump
-*.bak
-*.backup
-*.sqlite-wal
-*.sqlite-shm
 
 # Others
 ~$*
