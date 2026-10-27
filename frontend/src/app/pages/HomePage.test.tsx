@@ -3,9 +3,9 @@ import { render, screen } from "@testing-library/react";
 import { HomePage } from "./HomePage";
 
 describe("HomePage", () => {
-  it("muestra el nombre del sistema", () => {
+  it("muestra el mensaje de bienvenida", () => {
     render(<HomePage />);
 
-    expect(screen.getByRole("heading", { name: "Timeblock" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Bienvenido a Timeblock" })).toBeInTheDocument();
   });
 });
