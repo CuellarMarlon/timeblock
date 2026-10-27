@@ -1,3 +1,4 @@
+using Timeblock.Domain.Common;
 using Timeblock.Domain.Catalogo;
 
 namespace Timeblock.Domain.Tests.Catalogo;
@@ -21,9 +22,9 @@ public sealed class ProgramaAcademicoTests
     }
 
     [Fact]
-    public void Crear_ConIdVacio_LanzaArgumentException()
+    public void Crear_ConIdVacio_LanzaDomainException()
     {
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => ProgramaAcademico.Crear(
                 Guid.Empty,
                 "Ingeniería Informática",
@@ -33,11 +34,11 @@ public sealed class ProgramaAcademicoTests
     [Theory]
     [InlineData("", "Plan 2024")]
     [InlineData("Ingeniería Informática", " ")]
-    public void Crear_ConTextoObligatorioVacio_LanzaArgumentException(
+    public void Crear_ConTextoObligatorioVacio_LanzaDomainException(
         string nombre,
         string planEstudio)
     {
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => ProgramaAcademico.Crear(
                 Guid.NewGuid(),
                 nombre,
@@ -65,19 +66,19 @@ public sealed class ProgramaAcademicoTests
     }
 
     [Fact]
-    public void AsociarAsignatura_ConIdVacio_LanzaArgumentException()
+    public void AsociarAsignatura_ConIdVacio_LanzaDomainException()
     {
         ProgramaAcademico programa = ProgramaAcademico.Crear(
             Guid.NewGuid(),
             "Ingeniería Informática",
             "Plan 2024");
 
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => programa.AsociarAsignatura(Guid.Empty));
     }
 
     [Fact]
-    public void AsociarAsignatura_DosVeces_LanzaInvalidOperationException()
+    public void AsociarAsignatura_DosVeces_LanzaDomainException()
     {
         Guid asignaturaId = Guid.NewGuid();
 
@@ -88,7 +89,7 @@ public sealed class ProgramaAcademicoTests
 
         programa.AsociarAsignatura(asignaturaId);
 
-        Assert.Throws<InvalidOperationException>(
+        Assert.Throws<DomainException>(
             () => programa.AsociarAsignatura(asignaturaId));
     }
 
@@ -133,7 +134,7 @@ public sealed class ProgramaAcademicoTests
             "Ingeniería Informática",
             "Plan 2024");
 
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => programa.ActualizarDatos(
                 "Ingeniería de Software",
                 " "));

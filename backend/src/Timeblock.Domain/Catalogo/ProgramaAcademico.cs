@@ -1,3 +1,5 @@
+using Timeblock.Domain.Common;
+
 namespace Timeblock.Domain.Catalogo;
 
 public sealed class ProgramaAcademico
@@ -21,24 +23,16 @@ public sealed class ProgramaAcademico
 
     public static ProgramaAcademico Crear(Guid id, string nombre, string planEstudio)
     {
-        if (id == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "El identificador del programa es obligatorio.",
-                nameof(id));
-        }
-
         return new ProgramaAcademico(
-            id,
-            NormalizarTextoObligatorio(nombre, nameof(nombre)),
-            NormalizarTextoObligatorio(planEstudio, nameof(planEstudio)));
+            Guard.IdValido(id, "programaId"),
+            Guard.Requerido(nombre, "nombre"),
+            Guard.Requerido(planEstudio, "planEstudio"));
     }
 
     public void ActualizarDatos(string nombre, string planEstudio)
     {
-        string nombreValidado = NormalizarTextoObligatorio(nombre, nameof(nombre));
-
-        string planEstudioValidado = NormalizarTextoObligatorio(planEstudio, nameof(planEstudio));
+        string nombreValidado = Guard.Requerido(nombre, "nombre");
+        string planEstudioValidado = Guard.Requerido(planEstudio, "planEstudio");
 
         Nombre = nombreValidado;
         PlanEstudio = planEstudioValidado;
@@ -46,35 +40,18 @@ public sealed class ProgramaAcademico
 
     public void AsociarAsignatura(Guid asignaturaId)
     {
-        if (asignaturaId == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "El identificador de la asignatura es obligatorio.",
-                nameof(asignaturaId));
-        }
+        Guard.IdValido(asignaturaId, "asignaturaId");
 
         bool yaAsociada = _asignaturas.Any(
             asociacion => asociacion.AsignaturaId == asignaturaId);
 
         if (yaAsociada)
         {
-            throw new InvalidOperationException(
+            throw new DomainException(
                 "La asignatura ya está asociada a este programa.");
         }
 
         _asignaturas.Add(
             ProgramaAsignatura.Crear(Id, asignaturaId));
-    }
-
-    private static string NormalizarTextoObligatorio(string valor, string nombreParametro)
-    {
-        if (string.IsNullOrWhiteSpace(valor))
-        {
-            throw new ArgumentException(
-                "El valor es obligatorio.",
-                nombreParametro);
-        }
-
-        return valor.Trim();
     }
 }

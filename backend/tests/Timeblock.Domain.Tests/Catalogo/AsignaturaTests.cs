@@ -1,3 +1,4 @@
+using Timeblock.Domain.Common;
 using Timeblock.Domain.Catalogo;
 
 namespace Timeblock.Domain.Tests.Catalogo;
@@ -16,18 +17,18 @@ public sealed class AsignaturaTests
     }
 
     [Fact]
-    public void Crear_ConIdVacio_LanzaArgumentException()
+    public void Crear_ConIdVacio_LanzaDomainException()
     {
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => Asignatura.Crear(Guid.Empty, "Bases de Datos"));
     }
 
     [Theory]
     [InlineData("")]
     [InlineData(" ")]
-    public void Crear_ConNombreVacio_LanzaArgumentException(string nombre)
+    public void Crear_ConNombreVacio_LanzaDomainException(string nombre)
     {
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => Asignatura.Crear(Guid.NewGuid(), nombre));
     }
 
@@ -43,12 +44,12 @@ public sealed class AsignaturaTests
     }
 
     [Fact]
-    public void CambiarNombre_ConNombreVacio_LanzaArgumentException()
+    public void CambiarNombre_ConNombreVacio_LanzaDomainException()
     {
         Asignatura asignatura =
             Asignatura.Crear(Guid.NewGuid(), "Bases de Datos I");
 
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => asignatura.CambiarNombre(" "));
     }
 }

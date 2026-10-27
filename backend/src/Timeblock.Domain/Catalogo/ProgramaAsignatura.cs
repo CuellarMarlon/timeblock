@@ -1,3 +1,5 @@
+using Timeblock.Domain.Common;
+
 namespace Timeblock.Domain.Catalogo;
 
 public sealed class ProgramaAsignatura
@@ -14,20 +16,8 @@ public sealed class ProgramaAsignatura
 
     public static ProgramaAsignatura Crear(Guid programaId, Guid asignaturaId)
     {
-        if (programaId == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "El identificador del programa es obligatorio.",
-                nameof(programaId));
-        }
-
-        if (asignaturaId == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "El identificador de la asignatura es obligatorio.",
-                nameof(asignaturaId));
-        }
-
-        return new ProgramaAsignatura(programaId, asignaturaId);
+        return new ProgramaAsignatura(
+            Guard.IdValido(programaId, "programaId"),
+            Guard.IdValido(asignaturaId, "asignaturaId"));
     }
 }

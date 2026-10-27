@@ -1,3 +1,5 @@
+using Timeblock.Domain.Common;
+
 namespace Timeblock.Domain.Catalogo;
 
 public sealed class Asignatura
@@ -14,30 +16,13 @@ public sealed class Asignatura
 
     public static Asignatura Crear(Guid id, string nombre)
     {
-        if (id == Guid.Empty)
-        {
-            throw new ArgumentException(
-                "El identificador de la asignatura es obligatorio.",
-                nameof(id));
-        }
-
-        return new Asignatura(id, NormalizarNombre(nombre));
+        return new Asignatura(
+            Guard.IdValido(id, "asignaturaId"),
+            Guard.Requerido(nombre, "nombre"));
     }
 
     public void CambiarNombre(string nombre)
     {
-        Nombre = NormalizarNombre(nombre);
-    }
-
-    private static string NormalizarNombre(string nombre)
-    {
-        if (string.IsNullOrWhiteSpace(nombre))
-        {
-            throw new ArgumentException(
-                "El nombre de la asignatura es obligatorio.",
-                nameof(nombre));
-        }
-
-        return nombre.Trim();
+        Nombre = Guard.Requerido(nombre, "nombre");
     }
 }
