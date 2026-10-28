@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, type RouteObject } from "react-router-dom";
 import { AppLayout } from "./layouts/AppLayout";
 import { BloquesPage } from "./pages/BloquesPage";
 import { HomePage } from "./pages/HomePage";
@@ -8,7 +8,8 @@ import { NotFoundPage } from "./pages/NotFoundPage";
 import { PersonasPage } from "./pages/PersonasPage";
 import { ProgramasPage } from "./pages/ProgramasPage";
 
-export const router = createBrowserRouter([
+/** Definición de rutas de la aplicación. Se exporta para poder probarla. */
+export const routes: RouteObject[] = [
   {
     path: "/",
     element: <AppLayout />,
@@ -22,4 +23,6 @@ export const router = createBrowserRouter([
       { path: "*", element: <NotFoundPage /> },
     ],
   },
-]);
+];
+
+export const router = createBrowserRouter(routes);
