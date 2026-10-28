@@ -21,4 +21,15 @@ internal static class Guard
 
         return id;
     }
+
+    public static TEnum EnumValido<TEnum>(TEnum valor, string campo)
+        where TEnum : struct, Enum
+    {
+        if (!Enum.IsDefined(valor))
+        {
+            throw new DomainException($"El valor de {campo} no es válido.");
+        }
+
+        return valor;
+    }
 }
