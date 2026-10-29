@@ -54,4 +54,19 @@ public sealed class ProgramaAcademico
         _asignaturas.Add(
             ProgramaAsignatura.Crear(Id, asignaturaId));
     }
+
+    public bool IncluyeAsignatura(Guid asignaturaId) =>
+        _asignaturas.Any(asociacion => asociacion.AsignaturaId == asignaturaId);
+
+    private static string NormalizarTextoObligatorio(string valor, string nombreParametro)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            throw new ArgumentException(
+                "El valor es obligatorio.",
+                nombreParametro);
+        }
+
+        return valor.Trim();
+    }
 }

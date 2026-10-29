@@ -20,6 +20,21 @@ export function AppLayout() {
                 Inicio
               </NavLink>
             </li>
+            <li>
+              <NavLink to="/personas">Personas y perfiles</NavLink>
+            </li>
+            <li>
+              <NavLink to="/programas">Programas y asignaturas</NavLink>
+            </li>
+            <li>
+              <NavLink to="/matricula">Matrícula</NavLink>
+            </li>
+            <li>
+              <NavLink to="/bloques">Bloques de contenido</NavLink>
+            </li>
+            <li>
+              <NavLink to="/horarios">Horarios</NavLink>
+            </li>
           </ul>
         </nav>
       </header>
