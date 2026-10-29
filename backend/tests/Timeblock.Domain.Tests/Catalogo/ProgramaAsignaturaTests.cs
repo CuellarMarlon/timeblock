@@ -1,3 +1,4 @@
+using Timeblock.Domain.Common;
 using Timeblock.Domain.Catalogo;
 
 namespace Timeblock.Domain.Tests.Catalogo;
@@ -18,18 +19,18 @@ public sealed class ProgramaAsignaturaTests
     }
 
     [Fact]
-    public void Crear_ConProgramaIdVacio_LanzaArgumentException()
+    public void Crear_ConProgramaIdVacio_LanzaDomainException()
     {
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => ProgramaAsignatura.Crear(
                 Guid.Empty,
                 Guid.NewGuid()));
     }
 
     [Fact]
-    public void Crear_ConAsignaturaIdVacio_LanzaArgumentException()
+    public void Crear_ConAsignaturaIdVacio_LanzaDomainException()
     {
-        Assert.Throws<ArgumentException>(
+        Assert.Throws<DomainException>(
             () => ProgramaAsignatura.Crear(
                 Guid.NewGuid(),
                 Guid.Empty));
