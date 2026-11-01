@@ -174,8 +174,57 @@ pnpm run format
 
 ## Base de datos y migraciones
 
-Docker Compose inicializa PostgreSQL y ClickHouse para el desarrollo local.
-Actualmente el backend todavía no está conectado a esas bases de datos y el
-repositorio no contiene migraciones de Entity Framework Core. Por eso, no hay
-un comando de migración que ejecutar todavía. Cuando se incorpore la
-persistencia, se documentarán aquí los pasos para crear y aplicar migraciones.
+Docker Compose inicializa PostgreSQL y ClickHouse para el desarrollo local. La
+persistencia transaccional M4 usa PostgreSQL mediante EF Core y Npgsql.
+
+### Cadena de conexión local
+
+La API no carga automáticamente el archivo `.env` de Docker Compose. Configura
+la cadena de conexión mediante User Secrets, usando los valores locales de tu
+`.env`:
+
+```bash
+dotnet user-secrets init --project backend/src/Timeblock.Api/Timeblock.Api.csproj
+dotnet user-secrets set "ConnectionStrings:Timeblock" "Host=localhost;Port=5432;Database=<POSTGRES_DB>;Username=<POSTGRES_USER>;Password=<POSTGRES_PASSWORD>" --project backend/src/Timeblock.Api/Timeblock.Api.csproj
+```
+
+Reemplaza los valores entre `<...>` localmente. No publiques la cadena real ni
+la guardes en archivos versionados.
+
+### Migraciones
+
+Restaura la herramienta EF Core definida para el repositorio y verifica el
+estado de las migraciones:
+
+```bash
+dotnet tool restore
+dotnet ef migrations list --project backend/src/Timeblock.Infrastructure/Timeblock.Infrastructure.csproj --startup-project backend/src/Timeblock.Api/Timeblock.Api.csproj
+```
+
+Para aplicar la migración M4 a la base configurada:
+
+```bash
+dotnet ef database update --project backend/src/Timeblock.Infrastructure/Timeblock.Infrastructure.csproj --startup-project backend/src/Timeblock.Api/Timeblock.Api.csproj
+```
+
+### Decisiones de esquema M4
+
+- `ESQUEMA_LLAVE` (R16) se crea físicamente con sus nueve columnas obligatorias
+  y su clave primaria compuesta para cumplir la PLJ. No es un agregado de Domain.
+- Las claves foráneas de R16 se establecen hacia las relaciones incluidas en M4;
+  las referencias a relaciones de hitos posteriores quedan fuera del esquema M4.
+- RII03 se protege en PostgreSQL con triggers que impiden asociar un bloque a
+  un programa que no incluya su asignatura, y que impiden invalidar una
+  asociación existente al cambiar sus relaciones.
+- `cantTotalBloques` no se duplica como columna persistida: se deriva contando
+  bloques distintos asociados al horario, independientemente de las fechas.
+- En `BLOQUE_EN_HORARIO`, la fecha es obligatoria; hora, periodo de impartición
+  y aula son nulos en M4, o se informan juntos con horas válidas cuando exista
+  una impartición completa.
+
+### Pruebas PostgreSQL de Infrastructure
+
+La prueba de integración `PostgreSqlPersistenceTests` usa una base de pruebas
+ya migrada. Proporciona la cadena por la variable `TIMEBLOCK_TEST_CONNECTION`
+al ejecutar `dotnet test`; la prueba guarda y recupera datos dentro de una
+transacción que termina con rollback.
