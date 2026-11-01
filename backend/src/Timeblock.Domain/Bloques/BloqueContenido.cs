@@ -140,7 +140,8 @@ public sealed class BloqueContenido
         if (!programa.IncluyeAsignatura(AsignaturaId))
         {
             throw new DomainException(
-                "El bloque solo puede asociarse a un programa que incluya su asignatura.");
+                "El bloque solo puede asociarse a un programa que incluya su asignatura.",
+                TipoErrorDominio.Conflicto);
         }
 
         if (EstaAsociadoAPrograma(programa.Id))
@@ -190,7 +191,8 @@ public sealed class BloqueContenido
             if (!programa.IncluyeAsignatura(asignaturaValida))
             {
                 throw new DomainException(
-                    "La nueva asignatura no pertenece a todos los programas asociados al bloque.");
+                    "La nueva asignatura no pertenece a todos los programas asociados al bloque.",
+                    TipoErrorDominio.Conflicto);
             }
         }
 

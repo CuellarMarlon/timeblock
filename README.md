@@ -139,8 +139,33 @@ dotnet run --project backend/src/Timeblock.Api/Timeblock.Api.csproj --launch-pro
 La API escucha en `http://localhost:5131`. En desarrollo, el documento OpenAPI
 está disponible en `http://localhost:5131/openapi/v1.json`.
 
-Los proyectos de pruebas xUnit están preparados, pero las pruebas de las
-funcionalidades se irán añadiendo conforme se implemente el sistema.
+### Acceso del frontend (CORS)
+
+En desarrollo, la API acepta solicitudes desde los orígenes indicados en
+`Cors:AllowedOrigins` de `appsettings.Development.json` (por defecto,
+`http://localhost:5173` y `http://127.0.0.1:5173`, el puerto de Vite). Si el
+frontend usa otro origen, agregarlo a esa lista. Fuera de desarrollo no se
+autoriza ningún origen externo hasta configurarlo, por ejemplo con la variable
+de entorno `Cors__AllowedOrigins__0`.
+
+REVISAR ESTO Con el perfil `https`, la API redirige el tráfico HTTP a HTTPS, lo que impide
+las solicitudes CORS al puerto HTTP. Para el frontend local usa el perfil
+`http` o la URL `https://localhost:7161`.
+
+### Errores y paginación
+
+Los errores se devuelven como Problem Details (`application/problem+json`) y los
+listados usan `page`, `pageSize`, `items` y `totalItems`, según el
+[contrato de la API](docs/api/contrato-api.md). Los casos de uso y las
+convenciones de Application se describen en
+[`docs/arquitectura.md`](docs/arquitectura.md).
+
+### Pruebas del backend
+
+`dotnet test backend/Timeblock.sln` ejecuta las pruebas de Domain, Application,
+Api e Infrastructure. Las de Api levantan la aplicación en memoria y no
+necesitan PostgreSQL. Las pruebas de persistencia de Infrastructure se omiten si
+no defines `TIMEBLOCK_TEST_CONNECTION` (ver más abajo).
 
 ## Ejecutar el frontend
 

@@ -52,7 +52,8 @@ public sealed class Persona
         if (perfil.Tipo != Perfil.Tipo)
         {
             throw new DomainException(
-                $"No se puede cambiar el perfil {Perfil.Tipo} por {perfil.Tipo}.");
+                $"No se puede cambiar el perfil {Perfil.Tipo} por {perfil.Tipo}.",
+                TipoErrorDominio.Conflicto);
         }
 
         ComprobarCoordinadorAsignado(perfil);

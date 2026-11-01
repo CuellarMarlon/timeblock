@@ -62,13 +62,15 @@ public sealed class Horario
             autorizacion.ProgramaId != programaId)
         {
             throw new DomainException(
-                "La autorización no corresponde al coordinador y programa del horario.");
+                "La autorización no corresponde al coordinador y programa del horario.",
+                TipoErrorDominio.AutorizacionNegocio);
         }
 
         if (!autorizacion.PermiteGenerarEn(fechaCreacionUtc))
         {
             throw new DomainException(
-                "La autorización no está vigente o no permite generar horarios.");
+                "La autorización no está vigente o no permite generar horarios.",
+                TipoErrorDominio.AutorizacionNegocio);
         }
 
         return new Horario(
@@ -87,7 +89,8 @@ public sealed class Horario
         if (!bloque.PuedeUsarseEn(ProgramaId))
         {
             throw new DomainException(
-                "El bloque no puede utilizarse en el programa del horario.");
+                "El bloque no puede utilizarse en el programa del horario.",
+                TipoErrorDominio.Conflicto);
         }
 
         bool yaExiste = _bloques.Any(asociacion =>
@@ -98,7 +101,8 @@ public sealed class Horario
         if (yaExiste)
         {
             throw new DomainException(
-                "El bloque ya está asociado al horario en esa fecha.");
+                "El bloque ya está asociado al horario en esa fecha.",
+                TipoErrorDominio.Conflicto);
         }
 
         _bloques.Add(

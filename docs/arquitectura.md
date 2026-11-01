@@ -44,6 +44,31 @@ Domain         → ninguna otra capa del proyecto
 Así, las reglas del negocio no dependen de la API ni de la tecnología de
 persistencia.
 
+## Convenciones de Application y la API
+
+**Casos de uso.** Cada caso de uso es una clase de `Timeblock.Application`,
+agrupada por módulo (`Personas`, `Catalogo`, `Matriculas`, `Bloques`,
+`Horarios`), que implementa `ICasoDeUso`. `AddApplication()` registra
+automáticamente, con ciclo de vida por solicitud, las clases concretas que
+implementan esa interfaz, de modo que añadir un caso de uso no requiere editar
+el registro de dependencias. Application define las abstracciones que necesita
+(por ejemplo, repositorios) e Infrastructure las implementa; la API solo
+conoce los casos de uso.
+
+**Errores.** Las reglas del negocio lanzan `DomainException`. Su `Tipo`
+(`Validacion`, `AutorizacionNegocio`, `NoEncontrado` o `Conflicto`) determina
+el código HTTP (400, 403, 404 y 409). Cualquier otra excepción produce un 500
+sin detalles internos, que se registran solo en el log. Cuando un caso de uso no
+encuentra un recurso, lanza `DomainException` con `TipoErrorDominio.NoEncontrado`.
+
+**Listados.** `PageRequest` normaliza `page` y `pageSize` (por defecto 1 y 20,
+máximo 100) y `PagedResult<T>` es la respuesta común. En Infrastructure,
+`ToPagedResultAsync` pagina una consulta de EF Core, que debe estar ordenada.
+
+**Formato JSON.** Las propiedades usan `camelCase`, las enumeraciones se envían
+como cadenas, las fechas como `YYYY-MM-DD` y las marcas de tiempo en UTC con
+sufijo `Z`.
+
 ## Organización del frontend
 
 El frontend es una aplicación web única desarrollada con React, Vite y
