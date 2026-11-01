@@ -48,7 +48,8 @@ public sealed class ProgramaAcademico
         if (yaAsociada)
         {
             throw new DomainException(
-                "La asignatura ya está asociada a este programa.");
+                "La asignatura ya está asociada a este programa.",
+                TipoErrorDominio.Conflicto);
         }
 
         _asignaturas.Add(
