@@ -48,6 +48,8 @@ Las respuestas de error usan Problem Details (`application/problem+json`). Los e
 
 Propuesta inicial pendiente de ratificación: `page` por defecto `1`; `pageSize` por defecto `20`, máximo `100`.
 
+La implementación rechaza con `400` los valores fuera de rango (`page` menor que `1`, `pageSize` menor que `1` o mayor que `100`) en lugar de corregirlos silenciosamente.
+
 ```json
 {
   "items": [],

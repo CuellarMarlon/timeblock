@@ -49,7 +49,8 @@ public sealed class RegistroMatriculas
         if (!_matriculas.TryAdd((matricula.EstudianteId, matricula.ProgramaId), matricula))
         {
             throw new DomainException(
-                "El estudiante ya está matriculado en este programa.");
+                "El estudiante ya está matriculado en este programa.",
+                TipoErrorDominio.Conflicto);
         }
     }
 }

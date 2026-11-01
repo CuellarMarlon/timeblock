@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Timeblock.Api.Infrastructure;
+using Timeblock.Api.Configuration;
+using Timeblock.Api.Errors;
+using Timeblock.Application;
 using Timeblock.Application.Personas;
 using Timeblock.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 
 string connectionString = builder.Configuration.GetConnectionString("Timeblock")
     ?? throw new InvalidOperationException(
@@ -13,28 +13,34 @@ string connectionString = builder.Configuration.GetConnectionString("Timeblock")
 
 builder.Services.AddDbContext<TimeblockDbContext>(options =>
     options.UseNpgsql(connectionString));
+
 builder.Services.AddScoped<IPersonaRepository, PersonaRepository>();
 builder.Services.AddScoped<PersonasService>();
 
+builder.Services.AddApplication();
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+
+builder.Services.AddTimeblockJson();
+builder.Services.AddTimeblockProblemDetails();
+builder.Services.AddTimeblockCors(builder.Configuration);
+builder.Services.AddTimeblockOpenApi();
 
 var app = builder.Build();
 
-app.UseMiddleware<ApiExceptionMiddleware>();
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors(CorsConfiguration.PolicyName);
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
+
+public partial class Program;
