@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Timeblock.Domain.Common;
+using Timeblock.Application.Common.Exceptions;
 
 namespace Timeblock.Api.Errors;
 
@@ -26,6 +27,18 @@ internal sealed class ApiExceptionHandler(
             // ejemplo, cuerpo demasiado grande). Su mensaje es técnico.
             BadHttpRequestException solicitud =>
                 (solicitud.StatusCode, null),
+            
+            InvalidRequestException invalida =>
+                (StatusCodes.Status400BadRequest, invalida.Message),
+
+            ResourceNotFoundException =>
+                (StatusCodes.Status404NotFound, exception.Message),
+
+            ResourceConflictException =>
+                (StatusCodes.Status409Conflict, exception.Message),
+
+            ArgumentException invalida =>
+                (StatusCodes.Status400BadRequest, invalida.Message),
 
             _ => (StatusCodes.Status500InternalServerError,
                 ErroresHttp.DetalleErrorInesperado),
