@@ -63,6 +63,14 @@ La clave lógica de duplicidad es asignatura + tipo de actividad + descripción 
 
 La normalización y la restricción de unicidad deben aplicarse en el dominio/persistencia, no solo en el formulario. La detección semántica de descripciones distintas con contenido parecido queda fuera de M4.
 
+## Notas de implementación
+
+- `PUT /api/bloques/{bloqueId}/programas/{programaId}` responde `204 No Content`, también cuando la asociación ya existía. Repetirla no crea duplicados ni produce error.
+- `PUT /api/bloques/{bloqueId}` acepta cualquiera de `descripcion`, `tipoActividad`, `nivelComplejidad` y `asignaturaId`. Los datos que no se envíen se conservan y debe enviarse al menos uno. Cambiar la asignatura exige que todos los programas asociados al bloque la incluyan (RII03).
+- `GET /api/bloques` usa la paginación común (`page`, `pageSize`) y ordena por descripción normalizada. Los filtros informados se combinan con "y". Un `programaId` sin bloques devuelve una página vacía.
+- La asignatura se valida antes que los programas, y estos antes que la duplicidad.
+- Una persona sin perfil de coordinador se trata como coordinador inexistente (`404`).
+
 ## Errores esperados
 
 - `400`: enum inválido, descripción vacía o asociación incompatible.
