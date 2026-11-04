@@ -23,4 +23,10 @@
     <ProjectReference Include="..\..\src\Timeblock.Api\Timeblock.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Repositorio en memoria compartido con las pruebas de Application. -->
+    <Compile Include="..\Timeblock.Application.Tests\Bloques\FakeBloqueRepository.cs"
+             Link="Support\FakeBloqueRepository.cs" />
+  </ItemGroup>
+
 </Project>
