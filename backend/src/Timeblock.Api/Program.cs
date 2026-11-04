@@ -4,6 +4,7 @@ using Timeblock.Api.Errors;
 using Timeblock.Application;
 using Timeblock.Application.Catalogo;
 using Timeblock.Application.Bloques;
+using Timeblock.Application.Horarios;
 using Timeblock.Application.Matriculas;
 using Timeblock.Application.Personas;
 using Timeblock.Infrastructure.Persistence;
@@ -20,6 +21,7 @@ builder.Services.AddDbContext<TimeblockDbContext>(options =>
 builder.Services.AddScoped<ICatalogoRepository, CatalogoRepository>();
 builder.Services.AddScoped<IBloqueRepository, BloqueRepository>();
 builder.Services.AddScoped<IPersonaRepository, PersonaRepository>();
+builder.Services.AddScoped<IHorarioRepository, HorarioRepository>();
 builder.Services.AddScoped<PersonasService>();
 builder.Services.AddScoped<IMatriculaRepository, MatriculaRepository>();
 
