@@ -8,7 +8,7 @@ namespace Timeblock.Api.Configuration;
 
 public static class JsonConfiguration
 {
-   
+
     public static IServiceCollection AddTimeblockJson(
         this IServiceCollection services)
     {

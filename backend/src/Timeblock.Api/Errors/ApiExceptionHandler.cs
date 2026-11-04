@@ -27,7 +27,7 @@ internal sealed class ApiExceptionHandler(
             // ejemplo, cuerpo demasiado grande). Su mensaje es técnico.
             BadHttpRequestException solicitud =>
                 (solicitud.StatusCode, null),
-            
+
             InvalidRequestException invalida =>
                 (StatusCodes.Status400BadRequest, invalida.Message),
 

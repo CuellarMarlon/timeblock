@@ -20,6 +20,9 @@ public sealed class OpenApiTests(TimeblockApiFactory factory)
         string documento = await respuesta.Content.ReadAsStringAsync();
         Assert.Contains("Timeblock API", documento);
         Assert.Contains("/api/_tests/paginacion", documento);
+        Assert.Contains("/api/programas", documento);
+        Assert.Contains("/api/programas/{programaId}/asignaturas/{asignaturaId}", documento);
+        Assert.Contains("/api/asignaturas", documento);
     }
 
     [Fact]

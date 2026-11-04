@@ -1,6 +1,7 @@
 using Timeblock.Application.Personas;
 using Timeblock.Domain.Personas;
 using System.Text.Json.Serialization;
+using Timeblock.Api.Contracts.Common;
 
 namespace Timeblock.Api.Contracts.Personas;
 
@@ -27,8 +28,6 @@ public sealed record PersonaResponse(Guid Id, string Nombre, PerfilResponse Perf
 public sealed record PerfilEstudianteResponse(int Edad, string Grupo, Guid CoordinadorId) : PerfilResponse;
 public sealed record PerfilCoordinadorResponse(string Especialidad) : PerfilResponse;
 public sealed record PerfilJefeDepartamentoResponse : PerfilResponse;
-public sealed record PageResponse<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalItems);
-
 public sealed record ActualizarPersonaRequest
 {
     public required string Nombre { get; init; }

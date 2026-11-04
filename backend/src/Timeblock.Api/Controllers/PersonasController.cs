@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Timeblock.Api.Contracts.Common;
 using Timeblock.Api.Contracts.Personas;
 using Timeblock.Application.Common.Exceptions;
 using Timeblock.Application.Personas;

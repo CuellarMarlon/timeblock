@@ -19,7 +19,7 @@ public static class DependencyInjection
         return services.AddCasosDeUso(typeof(DependencyInjection).Assembly);
     }
 
-   
+
     public static IServiceCollection AddCasosDeUso(
         this IServiceCollection services,
         Assembly assembly)

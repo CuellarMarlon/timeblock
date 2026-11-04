@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Timeblock.Api.Configuration;
 using Timeblock.Api.Errors;
 using Timeblock.Application;
+using Timeblock.Application.Catalogo;
 using Timeblock.Application.Personas;
 using Timeblock.Infrastructure.Persistence;
 
@@ -16,6 +17,7 @@ builder.Services.AddDbContext<TimeblockDbContext>(options =>
 
 builder.Services.AddScoped<IPersonaRepository, PersonaRepository>();
 builder.Services.AddScoped<PersonasService>();
+builder.Services.AddScoped<ICatalogoRepository, CatalogoRepository>();
 
 builder.Services.AddApplication();
 builder.Services.AddControllers();
