@@ -218,4 +218,64 @@ public sealed class BloqueRepositoryIntegrationTests
                 e.AsignaturaBd, e.OtroCoordinador),
             CancellationToken.None));
     }
+
+    [PostgreSqlFact]
+    public async Task AsociarPrograma_DosSolicitudesConcurrentes_NoDuplicaLaRelacion()
+    {
+        Escenario escenario;
+        Guid bloqueId = Guid.NewGuid();
+
+        await using (var seedBd = new TimeblockDbContext(Opciones()))
+        {
+            await seedBd.Database.MigrateAsync();
+            escenario = await CrearEscenarioAsync(seedBd);
+            
+            seedBd.Bloques.Add(BloqueContenido.Crear(bloqueId, "Concurrente", TipoActividad.Teoria, NivelComplejidad.Medio, escenario.AsignaturaBd, escenario.Coordinador));
+
+            await seedBd.SaveChangesAsync();
+        }
+
+        try
+        {
+            await using var dbA = new TimeblockDbContext(Opciones());
+            await using var dbB = new TimeblockDbContext(Opciones());
+
+            var repoA = new BloqueRepository(dbA);
+            var repoB = new BloqueRepository(dbB);
+
+            BloqueContenido bloqueA = await repoA.ObtenerAsync(bloqueId, CancellationToken.None)
+            ?? throw new InvalidOperationException("No se encontró el bloque en la base de datos A.");
+            
+            BloqueContenido bloqueB = await repoB.ObtenerAsync(bloqueId, CancellationToken.None)
+            ?? throw new InvalidOperationException("No se encontró el bloque en la base de datos B.");
+
+            ProgramaAcademico programaA = Assert.Single(await repoA.ObtenerProgramasAsync([escenario.ProgramaInformatica], CancellationToken.None));
+            ProgramaAcademico programaB = Assert.Single(await repoB.ObtenerProgramasAsync([escenario.ProgramaInformatica], CancellationToken.None));
+
+            bloqueA.AsociarPrograma(programaA);
+            bloqueB.AsociarPrograma(programaB);
+
+            Task guardarA = repoA.GuardarCambiosAsync(CancellationToken.None);
+            Task guardarB = repoB.GuardarCambiosAsync(CancellationToken.None);
+
+            await Task.WhenAll(guardarA, guardarB);
+
+            await using var dbVerificacion = new TimeblockDbContext(Opciones());
+
+            int relacionesGuardadas = await dbVerificacion.BloquesProgramas.CountAsync(relacion => relacion.BloqueId == bloqueId && relacion.ProgramaId == escenario.ProgramaInformatica);
+
+            Assert.Equal(1, relacionesGuardadas);
+        }
+        finally
+        {
+            await using var cleanupDb = new TimeblockDbContext(Opciones());
+            await cleanupDb.BloquesProgramas.Where(relacion => relacion.BloqueId == bloqueId).ExecuteDeleteAsync();
+            await cleanupDb.Bloques.Where(bloque => bloque.Id == bloqueId).ExecuteDeleteAsync();
+            await cleanupDb.ProgramasAsignaturas.Where(relacion => relacion.ProgramaId == escenario.ProgramaInformatica || relacion.ProgramaId == escenario.ProgramaMatematica).ExecuteDeleteAsync();
+            await cleanupDb.Programas.Where(programa => programa.Id == escenario.ProgramaInformatica || programa.Id == escenario.ProgramaMatematica).ExecuteDeleteAsync();
+            await cleanupDb.Asignaturas.Where(asignatura => asignatura.Id == escenario.AsignaturaBd || asignatura.Id == escenario.AsignaturaMate).ExecuteDeleteAsync();
+            await cleanupDb.Coordinadores.Where(coordinador => coordinador.IdCoordinador == escenario.Coordinador || coordinador.IdCoordinador == escenario.OtroCoordinador).ExecuteDeleteAsync();
+            await cleanupDb.Personas.Where(persona => persona.IdPersona == escenario.Coordinador || persona.IdPersona == escenario.OtroCoordinador).ExecuteDeleteAsync();
+        }
+    }
 }
