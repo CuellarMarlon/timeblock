@@ -103,6 +103,15 @@ El horario referencia la autorización concreta de `COORDINADOR_EN_PROGRAMA` med
 
 La validación de solapamientos de aulas (RII04) se aplicará cuando exista programación completa y corresponde a M6.
 
+## Notas de implementación
+
+- La API valida en este orden: formato de la solicitud (`400`), programa y coordinador (`404`), autorización del coordinador (`403`), existencia de los bloques (`404`) y reglas de composición (`409`). Si hay varios problemas, se informa el primero.
+- La autorización se resuelve con la fecha actual del servidor (UTC): se usa una vigente con `puedeGenerar = true` y, si hay varias, la de inicio más reciente. Una que vence hoy sigue vigente hoy.
+- `GET /api/horarios` usa la paginación común y devuelve cada horario con sus bloques, igual que la consulta individual, del más reciente al más antiguo. El filtro `periodoAcademico` compara el texto exacto, sin espacios en los extremos.
+- Dentro de un horario, los bloques se devuelven ordenados por fecha y descripción.
+- Se ignoran las propiedades que el cliente envíe y no formen parte de la solicitud, como `estado` o `fechaCreacion`.
+- El horario y sus asociaciones se guardan en una sola operación de base de datos; las fechas que aún no existan en `FECHA` se crean en esa misma operación.
+
 ## Errores esperados
 
 - `400`: periodo vacío, lista vacía, UUID inválido o fecha ausente.
