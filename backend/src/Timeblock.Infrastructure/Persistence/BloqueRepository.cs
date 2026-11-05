@@ -11,6 +11,7 @@ namespace Timeblock.Infrastructure.Persistence;
 public sealed class BloqueRepository(TimeblockDbContext db) : IBloqueRepository
 {
     private const string IndiceClaveDuplicidad = "UX_BLOQUE_CONTENIDO_ClaveDuplicidad";
+    private const string ClavePrimariaBloquePrograma = "PK_BLOQUE_PROGRAMA";
 
     public Task<bool> ExisteAsignaturaAsync(Guid asignaturaId, CancellationToken ct) =>
         db.Asignaturas.AnyAsync(asignatura => asignatura.Id == asignaturaId, ct);
@@ -116,6 +117,27 @@ public sealed class BloqueRepository(TimeblockDbContext db) : IBloqueRepository
         catch (DbUpdateException ex)
             when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } error)
         {
+            if (error.ConstraintName == ClavePrimariaBloquePrograma)
+            {
+                BloquePrograma[] asociacionesNuevas = db.ChangeTracker.Entries<BloquePrograma>()
+                    .Where(entry => entry.State == EntityState.Added)
+                    .Select(entry => entry.Entity)
+                    .ToArray();
+
+                if (asociacionesNuevas.Length == 1)
+                {
+                    BloquePrograma asociacion = asociacionesNuevas[0];
+                    bool yaExiste = await db.BloquesProgramas.AnyAsync(
+                        relacion => relacion.BloqueId == asociacion.BloqueId && relacion.ProgramaId == asociacion.ProgramaId,
+                        ct);
+                    
+                    if (yaExiste)
+                    {
+                        db.Entry(asociacion).State = EntityState.Detached;
+                        return;
+                    }
+                }
+            }
             string mensaje = error.ConstraintName == IndiceClaveDuplicidad
                 ? "Ya existe un bloque con la misma asignatura, tipo de actividad y descripción."
                 : "La relación indicada ya existe.";
