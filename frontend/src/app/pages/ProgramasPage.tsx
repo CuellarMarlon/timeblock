@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { listarProgramas } from "../../api/program";
 import { useApiQuery } from "../../api/useApiQuery";
 import { QueryContent } from "../components/QueryContent";
+import { ProgramaForm } from "./ProgramaForm";
 import "./ProgramasPage.css";
 
 /** Cantidad de programas por página. */
@@ -21,7 +22,7 @@ export function ProgramasPage() {
     <section className="module" aria-labelledby="programas-titulo">
       <h1 id="programas-titulo">Programas y asignaturas</h1>
       <p>Gestión de los programas académicos, sus planes de estudio y asignaturas.</p>
-
+      <ProgramaForm onCreated={programas.reload} />
       <h2>Programas</h2>
       <QueryContent
         query={programas}
