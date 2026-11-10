@@ -37,11 +37,11 @@ public sealed class HorariosEndpointsTests : IClassFixture<TimeblockApiFactory>
         _practica = Sembrar("Consultas y operaciones SQL", TipoActividad.Practica);
     }
 
-    private HttpClient CrearCliente() =>
+    private HttpClient CrearCliente(DateTimeOffset? ahora = null) =>
         _factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
             {
                 services.Replace(ServiceDescriptor.Scoped<IHorarioRepository>(_ => _repositorio));
-                services.Replace(ServiceDescriptor.Singleton<TimeProvider>(new RelojFijo(Ahora)));
+                services.Replace(ServiceDescriptor.Singleton<TimeProvider>(new RelojFijo(ahora ?? Ahora)));
             }))
             .CreateClient();
 
@@ -329,6 +329,23 @@ public sealed class HorariosEndpointsTests : IClassFixture<TimeblockApiFactory>
         JsonElement json = await respuesta.LeerJsonAsync();
         Assert.Equal(id, json.GetProperty("id").GetGuid());
         Assert.Equal(2, json.GetProperty("bloques").GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Crear_RelojConFraccionesDe100Ns_DevuelveLaFechaEnMicrosegundosAlCrearYConsultar()
+    {
+        // PostgreSQL conserva microsegundos: .9271507 se guarda como .927150.
+        using HttpClient cliente = CrearCliente(Ahora.AddTicks(9_271_507));
+        using HttpResponseMessage creado = await Post(cliente, Cuerpo());
+        JsonElement json = await creado.LeerJsonAsync();
+        Guid id = json.GetProperty("id").GetGuid();
+
+        using HttpResponseMessage consultado = await cliente.GetAsync($"/api/horarios/{id}");
+        JsonElement leido = await consultado.LeerJsonAsync();
+
+        DateTimeOffset esperado = Ahora.AddTicks(9_271_500);
+        Assert.Equal(esperado, json.GetProperty("fechaCreacion").GetDateTimeOffset());
+        Assert.Equal(esperado, leido.GetProperty("fechaCreacion").GetDateTimeOffset());
     }
 
     [Fact]

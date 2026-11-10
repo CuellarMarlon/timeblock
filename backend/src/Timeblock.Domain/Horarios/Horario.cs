@@ -17,7 +17,7 @@ public sealed class Horario
         DateOnly fechaInicioAutorizacion)
     {
         Id = Guard.IdValido(id, "horarioId");
-        FechaCreacion = fechaCreacion.ToUniversalTime();
+        FechaCreacion = PrecisionTemporal.EnMicrosegundosUtc(fechaCreacion);
         PeriodoAcademico = Guard.Requerido(periodoAcademico, "periodoAcademico");
         ProgramaId = Guard.IdValido(programaId, "programaId");
         CoordinadorId = Guard.IdValido(coordinadorId, "coordinadorId");
