@@ -4,12 +4,14 @@ import { useApiMutation } from "../../api/useApiMutation";
 import { ErrorMessage } from "../components/ErrorMessage";
 
 interface ProgramaFormProps {
-  /** Se llama tras crear un programa con éxito (por ejemplo, para recargar el listado). */
+  /** Se llama tras crear un programa con éxito. */
   onCreated: () => void;
+  /** Se llama al cancelar el formulario. */
+  onCancel: () => void;
 }
 
-/** Formulario de creación de programas con validación, envío y estados de la API. */
-export function ProgramaForm({ onCreated }: ProgramaFormProps) {
+/** Formulario de creación de programas con validación, envío y errores de la API. */
+export function ProgramaForm({ onCreated, onCancel }: ProgramaFormProps) {
   const [nombre, setNombre] = useState("");
   const [planEstudio, setPlanEstudio] = useState("");
   const [errors, setErrors] = useState<{ nombre?: string; planEstudio?: string }>({});
@@ -25,17 +27,11 @@ export function ProgramaForm({ onCreated }: ProgramaFormProps) {
     if (Object.keys(nuevosErrores).length > 0) return;
 
     const ok = await crear.submit({ nombre: nombre.trim(), planEstudio: planEstudio.trim() });
-    if (ok) {
-      setNombre("");
-      setPlanEstudio("");
-      onCreated();
-    }
+    if (ok) onCreated();
   }
 
   return (
     <form className="module-form" onSubmit={handleSubmit} noValidate>
-      <h2>Nuevo programa</h2>
-
       <label>
         Nombre
         <input
@@ -56,12 +52,16 @@ export function ProgramaForm({ onCreated }: ProgramaFormProps) {
       </label>
       {errors.planEstudio && <p className="field-error">{errors.planEstudio}</p>}
 
-      <button type="submit" disabled={crear.status === "pending"}>
-        {crear.status === "pending" ? "Guardando…" : "Guardar programa"}
-      </button>
-
-      {crear.status === "success" && <p role="status">Programa creado correctamente.</p>}
       {crear.status === "error" && <ErrorMessage error={crear.error} />}
+
+      <div className="form-actions">
+        <button type="button" className="btn" onClick={onCancel}>
+          Cancelar
+        </button>
+        <button type="submit" className="btn btn-primary" disabled={crear.status === "pending"}>
+          {crear.status === "pending" ? "Guardando…" : "Guardar programa"}
+        </button>
+      </div>
     </form>
   );
 }
