@@ -41,6 +41,31 @@ public sealed class HorarioTests
     }
 
     [Fact]
+    public void Crear_ConFraccionesDe100Ns_GuardaFechaCreacionEnMicrosegundosUtc()
+    {
+        Guid programaId = Guid.NewGuid();
+        Guid coordinadorId = Guid.NewGuid();
+        var autorizacion = CrearAutorizacion(coordinadorId, programaId, new DateOnly(2026, 9, 7));
+
+        // 16:48:00.9271507 en UTC-5: PostgreSQL solo conserva hasta .927150.
+        DateTimeOffset local = new DateTimeOffset(2026, 11, 5, 11, 48, 0, TimeSpan.FromHours(-5))
+            .AddTicks(9_271_507);
+
+        Horario horario = Horario.Crear(
+            Guid.NewGuid(),
+            local,
+            "2026-2027",
+            programaId,
+            coordinadorId,
+            autorizacion);
+
+        DateTimeOffset esperado = new DateTimeOffset(2026, 11, 5, 16, 48, 0, TimeSpan.Zero)
+            .AddTicks(9_271_500);
+        Assert.Equal(esperado, horario.FechaCreacion);
+        Assert.Equal(TimeSpan.Zero, horario.FechaCreacion.Offset);
+    }
+
+    [Fact]
     public void Crear_ConAutorizacionDeOtroPrograma_LanzaDomainException()
     {
         Guid coordinadorId = Guid.NewGuid();

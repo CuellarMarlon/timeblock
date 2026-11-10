@@ -11,7 +11,7 @@ Este documento contiene las convenciones que comparten los grupos de endpoints; 
 - Propiedades JSON: `camelCase`.
 - Identificadores: UUID, generados por el servidor al crear recursos.
 - Fechas sin hora: `YYYY-MM-DD`.
-- Marcas de tiempo: ISO 8601 en UTC, por ejemplo `2026-10-12T14:30:00Z`.
+- Marcas de tiempo: ISO 8601 en UTC, por ejemplo `2026-10-12T14:30:00Z`. La precisión es de microsegundos, la que conserva PostgreSQL en `timestamp with time zone`: el servidor descarta las fracciones menores antes de responder o guardar, así la respuesta de creación y las consultas posteriores devuelven el mismo instante.
 - En los listados se propone usar `page` (por defecto `1`) y `pageSize` (por defecto `20`, máximo `100`).
 - Las operaciones de creación responden `201 Created`, con el recurso creado y su URI en `Location`.
 - Consultas y actualizaciones correctas responden `200 OK`; las asociaciones `PUT` idempotentes pueden responder `204 No Content`.

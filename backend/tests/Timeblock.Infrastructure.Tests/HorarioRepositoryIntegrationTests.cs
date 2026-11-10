@@ -89,7 +89,10 @@ public sealed class HorarioRepositoryIntegrationTests
         await db.Database.MigrateAsync();
         await using var transaction = await db.Database.BeginTransactionAsync();
         Escenario e = await CrearEscenarioAsync(db);
-        HorariosService servicio = Servicio(db);
+        // Reloj con fracciones de 100 ns, como el del sistema en Linux y
+        // Windows; PostgreSQL solo conserva microsegundos.
+        var servicio = new HorariosService(
+            new HorarioRepository(db), new RelojManual(ConFraccionesDe100Ns(DateTimeOffset.UtcNow)));
         string periodo = $"TEST-{Guid.NewGuid():N}";
 
         // El mismo bloque en dos fechas y otro bloque en una de ellas.
@@ -267,6 +270,9 @@ public sealed class HorarioRepositoryIntegrationTests
         await Assert.ThrowsAsync<ResourceConflictException>(
             () => new HorarioRepository(db).AgregarAsync(horario, CancellationToken.None));
     }
+
+    private static DateTimeOffset ConFraccionesDe100Ns(DateTimeOffset valor) =>
+        new(valor.Ticks - (valor.Ticks % TimeSpan.TicksPerMicrosecond) + 7, TimeSpan.Zero);
 
     private sealed class RelojManual(DateTimeOffset ahora) : TimeProvider
     {
