@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Tabs } from "../components/Tabs";
 import "./ProgramasPage.css";
 import { ProgramasPanel } from "./ProgramasPanel";
-
+import { AsignaturasPanel } from "./AsignaturasPanel";
 const TABS = [
   { id: "programas", label: "Programas académicos" },
   { id: "asignaturas", label: "Asignaturas" },
@@ -22,11 +22,7 @@ export function ProgramasPage() {
       <Tabs label="Secciones" tabs={TABS} active={tab} onChange={setTab} />
 
       <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-        {tab === "programas" ? (
-          <ProgramasPanel />
-        ) : (
-          <p className="notice">La gestión de asignaturas se añade en el siguiente paso.</p>
-        )}
+        {tab === "programas" ? <ProgramasPanel /> : <AsignaturasPanel />}
       </div>
     </section>
   );
