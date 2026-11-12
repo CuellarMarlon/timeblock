@@ -60,3 +60,46 @@
   gap: 0.5rem;
   margin-top: 0.5rem;
 }
+.associate-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  padding: 1rem;
+  align-items: end;
+}
+
+.associate-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+.associate-form select {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  font-weight: 400;
+}
+
+.associate-form select[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (min-width: 48rem) {
+  .associate-form {
+    grid-template-columns: 1fr 1fr auto;
+  }
+}

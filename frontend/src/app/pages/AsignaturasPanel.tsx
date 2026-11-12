@@ -4,7 +4,7 @@ import { useApiQuery } from "../../api/useApiQuery";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { AsignaturaForm } from "./AsignaturaForm";
-
+import { AsociarAsignatura } from "./AsociarAsignatura";
 const PAGE_SIZE = 10;
 
 /** Pestaña de asignaturas: botón de creación, tabla paginada y formulario en modal. */
@@ -96,7 +96,7 @@ export function AsignaturasPanel() {
           );
         }}
       </QueryContent>
-
+      <AsociarAsignatura />
       {creating && (
         <Modal title="Nueva asignatura" onClose={() => setCreating(false)}>
           <AsignaturaForm onCreated={handleCreated} onCancel={() => setCreating(false)} />
