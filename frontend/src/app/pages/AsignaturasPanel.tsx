@@ -12,9 +12,9 @@ const PAGE_SIZE = 10;
 /** Pestaña de asignaturas: creación, edición, tabla paginada y asociación a programas. */
 export function AsignaturasPanel() {
   const [page, setPage] = useState(1);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [editor, setEditor] = useState<{ asignatura?: Asignatura } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
   const load = useCallback(
     (signal: AbortSignal) => listarAsignaturas({ page, pageSize: PAGE_SIZE }, signal),
     [page],
@@ -28,6 +28,7 @@ export function AsignaturasPanel() {
       editando ? "Asignatura actualizada correctamente." : "Asignatura creada correctamente.",
     );
     asignaturas.reload();
+    setRefreshKey((k) => k + 1);
   }
 
   return (
@@ -118,7 +119,7 @@ export function AsignaturasPanel() {
         }}
       </QueryContent>
 
-      <AsociarAsignatura />
+      <AsociarAsignatura refreshKey={refreshKey} />
 
       {editor && (
         <Modal

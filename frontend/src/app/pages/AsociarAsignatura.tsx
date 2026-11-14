@@ -22,12 +22,15 @@ interface AsociacionInput {
 function asociar({ programaId, asignaturaId }: AsociacionInput) {
   return asociarAsignatura(programaId, asignaturaId);
 }
+interface AsociarAsignaturaProps {
+  /** Cambia cada vez que se crea o edita una asignatura, para recargar el selector. */
+  refreshKey?: number;
+}
 
-/**
- * Sección "Asignaturas por programa": permite asociar una asignatura a un
- * programa y consultar las asignaturas ya asociadas al programa elegido.
- */
-export function AsociarAsignatura() {
+export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
+  /* Sección "Asignaturas por programa": permite asociar una asignatura a un
+   * programa y consultar las asignaturas ya asociadas al programa elegido.
+   */
   const [programaId, setProgramaId] = useState("");
   const [asignaturaId, setAsignaturaId] = useState("");
   const [errors, setErrors] = useState<{ programa?: string; asignatura?: string }>({});
@@ -39,8 +42,11 @@ export function AsociarAsignatura() {
     [],
   );
   const loadAsignaturas = useCallback(
-    (signal: AbortSignal) => listarAsignaturas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal),
-    [],
+    (signal: AbortSignal) => {
+      void refreshKey;
+      return listarAsignaturas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal);
+    },
+    [refreshKey],
   );
   const programas = useApiQuery(loadProgramas);
   const asignaturas = useApiQuery(loadAsignaturas);
