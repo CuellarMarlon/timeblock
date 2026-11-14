@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { listarProgramas } from "../../api/program";
+import { listarProgramas, type Programa } from "../../api/program";
 import { useApiQuery } from "../../api/useApiQuery";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
@@ -11,7 +11,7 @@ const PAGE_SIZE = 10;
 /** Pestaña de programas: botón de creación, tabla paginada y formulario en modal. */
 export function ProgramasPanel() {
   const [page, setPage] = useState(1);
-  const [creating, setCreating] = useState(false);
+  const [editor, setEditor] = useState<{ programa?: Programa } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(
@@ -20,9 +20,10 @@ export function ProgramasPanel() {
   );
   const programas = useApiQuery(load);
 
-  function handleCreated() {
-    setCreating(false);
-    setNotice("Programa creado correctamente.");
+  function handleSaved() {
+    const editando = editor?.programa !== undefined;
+    setEditor(null);
+    setNotice(editando ? "Programa actualizado correctamente." : "Programa creado correctamente.");
     programas.reload();
   }
 
@@ -34,7 +35,7 @@ export function ProgramasPanel() {
           className="btn btn-primary"
           onClick={() => {
             setNotice(null);
-            setCreating(true);
+            setEditor({});
           }}
         >
           + Nuevo programa
@@ -62,6 +63,9 @@ export function ProgramasPanel() {
                   <tr>
                     <th scope="col">Nombre</th>
                     <th scope="col">Plan de estudios</th>
+                    <th scope="col">
+                      <span className="visually-hidden">Acciones</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -69,6 +73,19 @@ export function ProgramasPanel() {
                     <tr key={programa.id}>
                       <td>{programa.nombre}</td>
                       <td>{programa.planEstudio}</td>
+                      <td className="cell-actions">
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          aria-label={`Editar ${programa.nombre}`}
+                          onClick={() => {
+                            setNotice(null);
+                            setEditor({ programa });
+                          }}
+                        >
+                          ✎
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -100,9 +117,17 @@ export function ProgramasPanel() {
         }}
       </QueryContent>
 
-      {creating && (
-        <Modal title="Nuevo programa" onClose={() => setCreating(false)}>
-          <ProgramaForm onCreated={handleCreated} onCancel={() => setCreating(false)} />
+      {editor && (
+        <Modal
+          title={editor.programa ? "Editar programa" : "Nuevo programa"}
+          onClose={() => setEditor(null)}
+        >
+          <ProgramaForm
+            key={editor.programa?.id ?? "nuevo"}
+            programa={editor.programa}
+            onSaved={handleSaved}
+            onCancel={() => setEditor(null)}
+          />
         </Modal>
       )}
     </div>

@@ -1,16 +1,18 @@
 import { useCallback, useState } from "react";
-import { listarAsignaturas } from "../../api/program";
+import { listarAsignaturas, type Asignatura } from "../../api/program";
 import { useApiQuery } from "../../api/useApiQuery";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { AsignaturaForm } from "./AsignaturaForm";
 import { AsociarAsignatura } from "./AsociarAsignatura";
+
+/** Cantidad de asignaturas por página. */
 const PAGE_SIZE = 10;
 
-/** Pestaña de asignaturas: botón de creación, tabla paginada y formulario en modal. */
+/** Pestaña de asignaturas: creación, edición, tabla paginada y asociación a programas. */
 export function AsignaturasPanel() {
   const [page, setPage] = useState(1);
-  const [creating, setCreating] = useState(false);
+  const [editor, setEditor] = useState<{ asignatura?: Asignatura } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(
@@ -19,9 +21,12 @@ export function AsignaturasPanel() {
   );
   const asignaturas = useApiQuery(load);
 
-  function handleCreated() {
-    setCreating(false);
-    setNotice("Asignatura creada correctamente.");
+  function handleSaved() {
+    const editando = editor?.asignatura !== undefined;
+    setEditor(null);
+    setNotice(
+      editando ? "Asignatura actualizada correctamente." : "Asignatura creada correctamente.",
+    );
     asignaturas.reload();
   }
 
@@ -33,7 +38,7 @@ export function AsignaturasPanel() {
           className="btn btn-primary"
           onClick={() => {
             setNotice(null);
-            setCreating(true);
+            setEditor({});
           }}
         >
           + Nueva asignatura
@@ -60,12 +65,28 @@ export function AsignaturasPanel() {
                 <thead>
                   <tr>
                     <th scope="col">Nombre</th>
+                    <th scope="col">
+                      <span className="visually-hidden">Acciones</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.items.map((asignatura) => (
                     <tr key={asignatura.id}>
                       <td>{asignatura.nombre}</td>
+                      <td className="cell-actions">
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          aria-label={`Editar ${asignatura.nombre}`}
+                          onClick={() => {
+                            setNotice(null);
+                            setEditor({ asignatura });
+                          }}
+                        >
+                          ✎
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -96,10 +117,20 @@ export function AsignaturasPanel() {
           );
         }}
       </QueryContent>
+
       <AsociarAsignatura />
-      {creating && (
-        <Modal title="Nueva asignatura" onClose={() => setCreating(false)}>
-          <AsignaturaForm onCreated={handleCreated} onCancel={() => setCreating(false)} />
+
+      {editor && (
+        <Modal
+          title={editor.asignatura ? "Editar asignatura" : "Nueva asignatura"}
+          onClose={() => setEditor(null)}
+        >
+          <AsignaturaForm
+            key={editor.asignatura?.id ?? "nueva"}
+            asignatura={editor.asignatura}
+            onSaved={handleSaved}
+            onCancel={() => setEditor(null)}
+          />
         </Modal>
       )}
     </div>

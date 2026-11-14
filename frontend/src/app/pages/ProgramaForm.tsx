@@ -1,21 +1,33 @@
 import { useState, type FormEvent } from "react";
-import { crearPrograma } from "../../api/program";
+import { actualizarPrograma, crearPrograma, type Programa } from "../../api/program";
 import { useApiMutation } from "../../api/useApiMutation";
 import { ErrorMessage } from "../components/ErrorMessage";
 
 interface ProgramaFormProps {
-  /** Se llama tras crear un programa con éxito. */
-  onCreated: () => void;
+  /** Programa a editar. Si no se indica, el formulario crea uno nuevo. */
+  programa?: Programa;
+  /** Se llama tras guardar con éxito. */
+  onSaved: () => void;
   /** Se llama al cancelar el formulario. */
   onCancel: () => void;
 }
 
-/** Formulario de creación de programas con validación, envío y errores de la API. */
-export function ProgramaForm({ onCreated, onCancel }: ProgramaFormProps) {
-  const [nombre, setNombre] = useState("");
-  const [planEstudio, setPlanEstudio] = useState("");
+interface ProgramaFormValues {
+  nombre: string;
+  planEstudio: string;
+}
+
+/** Formulario de creación o edición de programas con validación y errores de la API. */
+export function ProgramaForm({ programa, onSaved, onCancel }: ProgramaFormProps) {
+  const [nombre, setNombre] = useState(programa?.nombre ?? "");
+  const [planEstudio, setPlanEstudio] = useState(programa?.planEstudio ?? "");
   const [errors, setErrors] = useState<{ nombre?: string; planEstudio?: string }>({});
-  const crear = useApiMutation(crearPrograma);
+
+  const guardar = useApiMutation(
+    programa
+      ? (values: ProgramaFormValues) => actualizarPrograma(programa.id, values)
+      : crearPrograma,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,8 +38,8 @@ export function ProgramaForm({ onCreated, onCancel }: ProgramaFormProps) {
     setErrors(nuevosErrores);
     if (Object.keys(nuevosErrores).length > 0) return;
 
-    const ok = await crear.submit({ nombre: nombre.trim(), planEstudio: planEstudio.trim() });
-    if (ok) onCreated();
+    const ok = await guardar.submit({ nombre: nombre.trim(), planEstudio: planEstudio.trim() });
+    if (ok) onSaved();
   }
 
   return (
@@ -52,14 +64,14 @@ export function ProgramaForm({ onCreated, onCancel }: ProgramaFormProps) {
       </label>
       {errors.planEstudio && <p className="field-error">{errors.planEstudio}</p>}
 
-      {crear.status === "error" && <ErrorMessage error={crear.error} />}
+      {guardar.status === "error" && <ErrorMessage error={guardar.error} />}
 
       <div className="form-actions">
         <button type="button" className="btn" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary" disabled={crear.status === "pending"}>
-          {crear.status === "pending" ? "Guardando…" : "Guardar programa"}
+        <button type="submit" className="btn btn-primary" disabled={guardar.status === "pending"}>
+          {guardar.status === "pending" ? "Guardando…" : "Guardar programa"}
         </button>
       </div>
     </form>
