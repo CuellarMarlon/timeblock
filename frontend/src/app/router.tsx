@@ -6,6 +6,7 @@ import { BloqueNuevoPage } from "./pages/BloqueNuevoPage";
 import { BloquesPage } from "./pages/BloquesPage";
 import { HomePage } from "./pages/HomePage";
 import { HorarioDetallePage } from "./pages/HorarioDetallePage";
+import { HorarioNuevoPage } from "./pages/HorarioNuevoPage";
 import { HorariosPage } from "./pages/HorariosPage";
 import { MatriculaPage } from "./pages/MatriculaPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -27,6 +28,7 @@ export const routes: RouteObject[] = [
       { path: "bloques/:bloqueId", element: <BloqueDetallePage /> },
       { path: "bloques/:bloqueId/editar", element: <BloqueEditarPage /> },
       { path: "horarios", element: <HorariosPage /> },
+      { path: "horarios/nuevo", element: <HorarioNuevoPage /> },
       { path: "horarios/:horarioId", element: <HorarioDetallePage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
