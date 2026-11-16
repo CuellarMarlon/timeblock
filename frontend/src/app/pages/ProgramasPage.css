@@ -103,3 +103,31 @@
     grid-template-columns: 1fr 1fr auto;
   }
 }
+
+/*Esta parte corresponde a Personas, por comodidad*/
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.module-form select {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  font-weight: 400;
+}
+
+.module-form select[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+@media (min-width: 48rem) {
+  .page-header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}

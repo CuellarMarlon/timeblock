@@ -1,15 +1,19 @@
 import { useCallback, useMemo, useState } from "react";
-import { listarPersonas } from "../../api/persons";
+import { listarPersonas, type Persona } from "../../api/persons";
 import { useApiQuery } from "../../api/useApiQuery";
+import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
+import { PersonaForm } from "./PersonaForm";
 import { detallePerfil, TIPO_LABEL } from "./personaLabels";
 
 const MAX_PAGE_SIZE = 100;
 const PAGE_SIZE = 10;
 
-/** Listado de personas con su perfil */
+/** Módulo de personas: cabecera con alta, listado con perfiles y formulario en modal. */
 export function PersonasPanel() {
   const [page, setPage] = useState(1);
+  const [creating, setCreating] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(
     (signal: AbortSignal) => listarPersonas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal),
@@ -22,8 +26,43 @@ export function PersonasPanel() {
     return new Map(personas.data.items.map((p) => [p.id, p.nombre]));
   }, [personas]);
 
+  const coordinadores: Persona[] = useMemo(() => {
+    if (personas.status !== "success") return [];
+    return personas.data.items.filter((p) => p.perfil.tipo === "coordinador");
+  }, [personas]);
+
+  function handleSaved() {
+    setCreating(false);
+    setNotice("Persona creada correctamente.");
+    personas.reload();
+  }
+
   return (
-    <div className="module-panel">
+    <section className="module" aria-labelledby="personas-titulo">
+      <header className="page-header">
+        <div>
+          <h1 id="personas-titulo">Personas y perfiles</h1>
+          <p>Gestión de estudiantes, coordinadores académicos y jefes de departamento.</p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={personas.status !== "success"}
+          onClick={() => {
+            setNotice(null);
+            setCreating(true);
+          }}
+        >
+          + Nueva persona
+        </button>
+      </header>
+
+      {notice && (
+        <p className="notice" role="status">
+          {notice}
+        </p>
+      )}
+
       <QueryContent
         query={personas}
         onRetry={personas.reload}
@@ -90,6 +129,16 @@ export function PersonasPanel() {
           );
         }}
       </QueryContent>
-    </div>
+
+      {creating && (
+        <Modal title="Nueva persona" onClose={() => setCreating(false)}>
+          <PersonaForm
+            coordinadores={coordinadores}
+            onSaved={handleSaved}
+            onCancel={() => setCreating(false)}
+          />
+        </Modal>
+      )}
+    </section>
   );
 }
