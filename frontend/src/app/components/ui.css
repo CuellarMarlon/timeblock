@@ -161,3 +161,18 @@
 .btn-icon:hover {
   color: var(--accent);
 }
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #eeeeea;
+  color: var(--text);
+}
+
+.badge--coordinador,
+.badge--jefeDepartamento {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
