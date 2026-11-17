@@ -1,10 +1,20 @@
 import { useState, type FormEvent } from "react";
-import { crearPersona, type Perfil, type Persona, type TipoPerfil } from "../../api/persons";
+import {
+  actualizarPerfil,
+  actualizarPersona,
+  crearPersona,
+  type Perfil,
+  type Persona,
+  type PersonaInput,
+  type TipoPerfil,
+} from "../../api/persons";
 import { useApiMutation } from "../../api/useApiMutation";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { TIPO_LABEL } from "./personaLabels";
 
 interface PersonaFormProps {
+  /** Persona a editar. Si no se indica, el formulario crea una nueva. */
+  persona?: Persona;
   /** Coordinadores disponibles para asignar a un estudiante. */
   coordinadores: Persona[];
   onSaved: () => void;
@@ -17,16 +27,41 @@ type FieldErrors = Partial<
 
 const TIPOS: TipoPerfil[] = ["estudiante", "coordinador", "jefeDepartamento"];
 
-/** Formulario de creación de personas: los campos del perfil dependen del tipo elegido. */
-export function PersonaForm({ coordinadores, onSaved, onCancel }: PersonaFormProps) {
-  const [nombre, setNombre] = useState("");
-  const [tipo, setTipo] = useState<TipoPerfil | "">("");
-  const [edad, setEdad] = useState("");
-  const [grupo, setGrupo] = useState("");
-  const [coordinadorId, setCoordinadorId] = useState("");
-  const [especialidad, setEspecialidad] = useState("");
+/** Compara dos perfiles del mismo tipo campo por campo. */
+function mismoPerfil(a: Perfil, b: Perfil): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Formulario de creación o edición de personas. Los campos del perfil dependen
+ * del tipo elegido; al editar, el tipo queda fijo.
+ */
+export function PersonaForm({ persona, coordinadores, onSaved, onCancel }: PersonaFormProps) {
+  const original = persona?.perfil;
+  const [nombre, setNombre] = useState(persona?.nombre ?? "");
+  const [tipo, setTipo] = useState<TipoPerfil | "">(original?.tipo ?? "");
+  const [edad, setEdad] = useState(original?.tipo === "estudiante" ? String(original.edad) : "");
+  const [grupo, setGrupo] = useState(original?.tipo === "estudiante" ? original.grupo : "");
+  const [coordinadorId, setCoordinadorId] = useState(
+    original?.tipo === "estudiante" ? original.coordinadorId : "",
+  );
+  const [especialidad, setEspecialidad] = useState(
+    original?.tipo === "coordinador" ? original.especialidad : "",
+  );
   const [errors, setErrors] = useState<FieldErrors>({});
-  const crear = useApiMutation(crearPersona);
+
+  const guardar = useApiMutation(async (input: PersonaInput) => {
+    if (!persona) return crearPersona(input);
+
+    let resultado: Persona = persona;
+    if (input.nombre !== persona.nombre) {
+      resultado = await actualizarPersona(persona.id, { nombre: input.nombre });
+    }
+    if (!mismoPerfil(input.perfil, persona.perfil)) {
+      resultado = await actualizarPerfil(persona.id, input.perfil);
+    }
+    return resultado;
+  });
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,7 +89,7 @@ export function PersonaForm({ coordinadores, onSaved, onCancel }: PersonaFormPro
     setErrors(nuevos);
     if (Object.keys(nuevos).length > 0 || !perfil) return;
 
-    const ok = await crear.submit({ nombre: nombre.trim(), perfil });
+    const ok = await guardar.submit({ nombre: nombre.trim(), perfil });
     if (ok) onSaved();
   }
 
@@ -74,6 +109,7 @@ export function PersonaForm({ coordinadores, onSaved, onCancel }: PersonaFormPro
         Perfil
         <select
           value={tipo}
+          disabled={persona !== undefined}
           onChange={(e) => {
             setTipo(e.target.value as TipoPerfil | "");
             setErrors({});
@@ -150,14 +186,14 @@ export function PersonaForm({ coordinadores, onSaved, onCancel }: PersonaFormPro
         </>
       )}
 
-      {crear.status === "error" && <ErrorMessage error={crear.error} />}
+      {guardar.status === "error" && <ErrorMessage error={guardar.error} />}
 
       <div className="form-actions">
         <button type="button" className="btn" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary" disabled={crear.status === "pending"}>
-          {crear.status === "pending" ? "Guardando…" : "Guardar persona"}
+        <button type="submit" className="btn btn-primary" disabled={guardar.status === "pending"}>
+          {guardar.status === "pending" ? "Guardando…" : "Guardar persona"}
         </button>
       </div>
     </form>

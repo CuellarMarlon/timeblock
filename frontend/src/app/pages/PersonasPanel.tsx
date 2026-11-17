@@ -12,7 +12,7 @@ const PAGE_SIZE = 10;
 /** Módulo de personas: cabecera con alta, listado con perfiles y formulario en modal. */
 export function PersonasPanel() {
   const [page, setPage] = useState(1);
-  const [creating, setCreating] = useState(false);
+  const [editor, setEditor] = useState<{ persona?: Persona } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(
@@ -32,8 +32,9 @@ export function PersonasPanel() {
   }, [personas]);
 
   function handleSaved() {
-    setCreating(false);
-    setNotice("Persona creada correctamente.");
+    const editando = editor?.persona !== undefined;
+    setEditor(null);
+    setNotice(editando ? "Persona actualizada correctamente." : "Persona creada correctamente.");
     personas.reload();
   }
 
@@ -50,7 +51,7 @@ export function PersonasPanel() {
           disabled={personas.status !== "success"}
           onClick={() => {
             setNotice(null);
-            setCreating(true);
+            setEditor({});
           }}
         >
           + Nueva persona
@@ -80,6 +81,9 @@ export function PersonasPanel() {
                     <th scope="col">Nombre</th>
                     <th scope="col">Perfil</th>
                     <th scope="col">Detalle</th>
+                    <th scope="col">
+                      <span className="visually-hidden">Acciones</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -98,6 +102,19 @@ export function PersonasPanel() {
                             ? nombres.get(persona.perfil.coordinadorId)
                             : undefined,
                         )}
+                      </td>
+                      <td className="cell-actions">
+                        <button
+                          type="button"
+                          className="btn-icon"
+                          aria-label={`Editar ${persona.nombre}`}
+                          onClick={() => {
+                            setNotice(null);
+                            setEditor({ persona });
+                          }}
+                        >
+                          ✎
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -130,12 +147,17 @@ export function PersonasPanel() {
         }}
       </QueryContent>
 
-      {creating && (
-        <Modal title="Nueva persona" onClose={() => setCreating(false)}>
+      {editor && (
+        <Modal
+          title={editor.persona ? "Editar persona" : "Nueva persona"}
+          onClose={() => setEditor(null)}
+        >
           <PersonaForm
+            key={editor.persona?.id ?? "nueva"}
+            persona={editor.persona}
             coordinadores={coordinadores}
             onSaved={handleSaved}
-            onCancel={() => setCreating(false)}
+            onCancel={() => setEditor(null)}
           />
         </Modal>
       )}
