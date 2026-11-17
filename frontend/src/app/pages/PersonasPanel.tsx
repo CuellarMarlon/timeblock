@@ -5,6 +5,7 @@ import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { PersonaForm } from "./PersonaForm";
 import { detallePerfil, TIPO_LABEL } from "./personaLabels";
+import { AutorizacionesModal } from "./AutorizacionesModal";
 
 const MAX_PAGE_SIZE = 100;
 const PAGE_SIZE = 10;
@@ -14,7 +15,7 @@ export function PersonasPanel() {
   const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<{ persona?: Persona } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-
+  const [autorizando, setAutorizando] = useState<Persona | null>(null);
   const load = useCallback(
     (signal: AbortSignal) => listarPersonas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal),
     [],
@@ -104,6 +105,15 @@ export function PersonasPanel() {
                         )}
                       </td>
                       <td className="cell-actions">
+                        {persona.perfil.tipo === "coordinador" && (
+                          <button
+                            type="button"
+                            className="btn"
+                            onClick={() => setAutorizando(persona)}
+                          >
+                            Autorizaciones
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn-icon"
@@ -160,6 +170,9 @@ export function PersonasPanel() {
             onCancel={() => setEditor(null)}
           />
         </Modal>
+      )}
+      {autorizando && (
+        <AutorizacionesModal coordinador={autorizando} onClose={() => setAutorizando(null)} />
       )}
     </section>
   );

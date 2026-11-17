@@ -131,3 +131,16 @@
     justify-content: space-between;
   }
 }
+
+/*Esta parte es del modal de autorizacion*/
+.module-form label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+}
+
+/* Modal más ancho para tablas, no se aplica a los formularios */
+.modal:has(.table) {
+  max-width: 48rem;
+}
