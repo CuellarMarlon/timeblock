@@ -35,3 +35,24 @@ export function listarMatriculasDeEstudiante(
     signal,
   });
 }
+
+/** Filtros opcionales del listado general de matrículas. */
+export interface MatriculaFiltros {
+  estudianteId?: string;
+  programaId?: string;
+}
+
+/**
+ * Lista matrículas con filtros opcionales.
+ * Endpoint asumido, pendiente en el backend
+ */
+export function listarMatriculas(
+  filtros: MatriculaFiltros,
+  params: PageParams,
+  signal?: AbortSignal,
+) {
+  return apiClient.get<PagedResult<Matricula>>("/api/matriculas", {
+    query: { ...filtros, ...params },
+    signal,
+  });
+}

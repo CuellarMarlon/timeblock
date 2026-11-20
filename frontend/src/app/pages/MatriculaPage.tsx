@@ -1,44 +1,26 @@
-import { useCallback, useMemo, useState, type FormEvent } from "react";
-import {
-  listarMatriculasDeEstudiante,
-  listarMatriculasDePrograma,
-  matricular,
-} from "../../api/enrollments";
+import { useCallback, useMemo, useState } from "react";
+import { listarMatriculas } from "../../api/enrollments";
 import { listarPersonas } from "../../api/persons";
 import { listarProgramas } from "../../api/program";
-import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
-import { ErrorMessage } from "../components/ErrorMessage";
+import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
-import { Tabs } from "../components/Tabs";
+import { MatriculaForm } from "./MatriculaForm";
 import "./ProgramasPage.css";
 
+/** Máximo de elementos por página admitido por la API. */
 const MAX_PAGE_SIZE = 100;
+/** Filas por página en la tabla. */
+const PAGE_SIZE = 10;
 
-const TABS = [
-  { id: "programa", label: "Por programa" },
-  { id: "estudiante", label: "Por estudiante" },
-];
-
-interface MatriculaInput {
-  programaId: string;
-  estudianteId: string;
-}
-
-/** Acción de matrícula definida fuera del componente para que sea estable. */
-function crearMatricula({ programaId, estudianteId }: MatriculaInput) {
-  return matricular(programaId, estudianteId);
-}
-
-/** Módulo de matrícula: alta de matrículas y consulta por programa o por estudiante. */
+/** Módulo de matrícula: tabla filtrable por estudiante y programa, y alta en modal. */
 export function MatriculaPage() {
-  const [programaId, setProgramaId] = useState("");
   const [estudianteId, setEstudianteId] = useState("");
-  const [errors, setErrors] = useState<{ programa?: string; estudiante?: string }>({});
+  const [programaId, setProgramaId] = useState("");
+  const [page, setPage] = useState(1);
+  const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [tab, setTab] = useState("programa");
   const [refreshKey, setRefreshKey] = useState(0);
-  const mutation = useApiMutation(crearMatricula);
 
   const loadProgramas = useCallback(
     (signal: AbortSignal) => listarProgramas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal),
@@ -51,6 +33,10 @@ export function MatriculaPage() {
   const programas = useApiQuery(loadProgramas);
   const personas = useApiQuery(loadPersonas);
 
+  const listaProgramas = useMemo(
+    () => (programas.status === "success" ? programas.data.items : []),
+    [programas],
+  );
   const estudiantes = useMemo(
     () =>
       personas.status === "success"
@@ -59,178 +45,159 @@ export function MatriculaPage() {
     [personas],
   );
   const nombresProgramas = useMemo(
-    () =>
-      programas.status === "success"
-        ? new Map(programas.data.items.map((p) => [p.id, p.nombre]))
-        : new Map<string, string>(),
-    [programas],
+    () => new Map(listaProgramas.map((p) => [p.id, p.nombre])),
+    [listaProgramas],
   );
   const nombresPersonas = useMemo(
     () =>
-      personas.status === "success"
-        ? new Map(personas.data.items.map((p) => [p.id, p.nombre]))
-        : new Map<string, string>(),
+      new Map(
+        personas.status === "success" ? personas.data.items.map((p) => [p.id, p.nombre]) : [],
+      ),
     [personas],
   );
 
-  // Consulta de la pestaña activa. Sin selección no se pide nada.
-  const consultaId = tab === "programa" ? programaId : estudianteId;
   const loadMatriculas = useCallback(
     (signal: AbortSignal) => {
       void refreshKey;
-      if (!consultaId) return Promise.resolve(null);
-      return tab === "programa"
-        ? listarMatriculasDePrograma(consultaId, { page: 1, pageSize: MAX_PAGE_SIZE }, signal)
-        : listarMatriculasDeEstudiante(consultaId, { page: 1, pageSize: MAX_PAGE_SIZE }, signal);
+      return listarMatriculas(
+        { estudianteId: estudianteId || undefined, programaId: programaId || undefined },
+        { page, pageSize: PAGE_SIZE },
+        signal,
+      );
     },
-    [tab, consultaId, refreshKey],
+    [estudianteId, programaId, page, refreshKey],
   );
   const matriculas = useApiQuery(loadMatriculas);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setNotice(null);
+  const listasListas = programas.status === "success" && personas.status === "success";
 
-    const nuevos: typeof errors = {};
-    if (!programaId) nuevos.programa = "Selecciona un programa.";
-    if (!estudianteId) nuevos.estudiante = "Selecciona un estudiante.";
-    setErrors(nuevos);
-    if (Object.keys(nuevos).length > 0) return;
-
-    const ok = await mutation.submit({ programaId, estudianteId });
-    if (ok) {
-      setNotice("Estudiante matriculado correctamente.");
-      setRefreshKey((k) => k + 1);
-    }
+  function handleSaved() {
+    setCreating(false);
+    setNotice("Estudiante matriculado correctamente.");
+    setRefreshKey((k) => k + 1);
   }
 
   return (
     <section className="module" aria-labelledby="matricula-titulo">
-      <header>
-        <h1 id="matricula-titulo">Matrícula</h1>
-        <p>Registro y consulta de la matrícula de estudiantes en programas académicos.</p>
+      <header className="page-header">
+        <div>
+          <h1 id="matricula-titulo">Matrícula</h1>
+          <p>Relaciona estudiantes con los programas académicos en los que están matriculados.</p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={!listasListas}
+          onClick={() => {
+            setNotice(null);
+            setCreating(true);
+          }}
+        >
+          + Nueva matrícula
+        </button>
       </header>
 
-      <QueryContent
-        query={programas}
-        onRetry={programas.reload}
-        loadingLabel="Cargando programas…"
-        emptyMessage="Crea al menos un programa para poder matricular."
-      >
-        {(dataProgramas) => (
-          <QueryContent
-            query={personas}
-            onRetry={personas.reload}
-            loadingLabel="Cargando estudiantes…"
-            emptyMessage="Crea al menos un estudiante para poder matricular."
-          >
-            {() => (
-              <form className="card associate-form" onSubmit={handleSubmit} noValidate>
-                <label>
-                  Estudiante
-                  <select
-                    value={estudianteId}
-                    onChange={(e) => {
-                      setEstudianteId(e.target.value);
-                      setNotice(null);
-                      mutation.reset();
-                    }}
-                    aria-invalid={errors.estudiante ? true : undefined}
-                  >
-                    <option value="">Selecciona un estudiante</option>
-                    {estudiantes.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.estudiante && <span className="field-error">{errors.estudiante}</span>}
-                </label>
-
-                <label>
-                  Programa académico
-                  <select
-                    value={programaId}
-                    onChange={(e) => {
-                      setProgramaId(e.target.value);
-                      setNotice(null);
-                      mutation.reset();
-                    }}
-                    aria-invalid={errors.programa ? true : undefined}
-                  >
-                    <option value="">Selecciona un programa</option>
-                    {dataProgramas.items.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.programa && <span className="field-error">{errors.programa}</span>}
-                </label>
-
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={mutation.status === "pending"}
-                >
-                  {mutation.status === "pending" ? "Matriculando…" : "Matricular"}
-                </button>
-              </form>
-            )}
-          </QueryContent>
-        )}
-      </QueryContent>
+      <div className="filters">
+        <select
+          aria-label="Filtrar por estudiante"
+          value={estudianteId}
+          onChange={(e) => {
+            setEstudianteId(e.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">Todos los estudiantes</option>
+          {estudiantes.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.nombre}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filtrar por programa"
+          value={programaId}
+          onChange={(e) => {
+            setProgramaId(e.target.value);
+            setPage(1);
+          }}
+        >
+          <option value="">Todos los programas</option>
+          {listaProgramas.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {notice && (
         <p className="notice" role="status">
           {notice}
         </p>
       )}
-      {mutation.status === "error" && <ErrorMessage error={mutation.error} />}
 
-      <h2>Consultar matrículas</h2>
-      <Tabs label="Tipo de consulta" tabs={TABS} active={tab} onChange={setTab} />
-
-      {!consultaId ? (
-        <p className="notice">
-          {tab === "programa"
-            ? "Selecciona un programa arriba para ver sus estudiantes."
-            : "Selecciona un estudiante arriba para ver sus programas."}
-        </p>
-      ) : (
-        <QueryContent
-          query={matriculas}
-          onRetry={matriculas.reload}
-          loadingLabel="Cargando matrículas…"
-          emptyMessage={
-            tab === "programa"
-              ? "Este programa todavía no tiene estudiantes matriculados."
-              : "Este estudiante todavía no está matriculado en ningún programa."
-          }
-        >
-          {(data) =>
-            data && (
-              <div className="card">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Estudiante</th>
-                      <th scope="col">Programa académico</th>
+      <QueryContent
+        query={matriculas}
+        onRetry={matriculas.reload}
+        loadingLabel="Cargando matrículas…"
+        emptyMessage="No hay matrículas para los filtros seleccionados."
+      >
+        {(data) => {
+          const totalPages = Math.max(1, Math.ceil(data.totalItems / data.pageSize));
+          return (
+            <div className="card">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Estudiante</th>
+                    <th scope="col">Programa académico</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.items.map((m) => (
+                    <tr key={`${m.estudianteId}-${m.programaId}`}>
+                      <td>{nombresPersonas.get(m.estudianteId) ?? "Estudiante desconocido"}</td>
+                      <td>{nombresProgramas.get(m.programaId) ?? "Programa desconocido"}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {data.items.map((m) => (
-                      <tr key={`${m.estudianteId}-${m.programaId}`}>
-                        <td>{nombresPersonas.get(m.estudianteId) ?? "Estudiante desconocido"}</td>
-                        <td>{nombresProgramas.get(m.programaId) ?? "Programa desconocido"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )
-          }
-        </QueryContent>
+                  ))}
+                </tbody>
+              </table>
+
+              <nav className="card-footer" aria-label="Paginación de matrículas">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page <= 1}
+                >
+                  Anterior
+                </button>
+                <span>
+                  Página {data.page} de {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page >= totalPages}
+                >
+                  Siguiente
+                </button>
+              </nav>
+            </div>
+          );
+        }}
+      </QueryContent>
+
+      {creating && (
+        <Modal title="Nueva matrícula" onClose={() => setCreating(false)}>
+          <MatriculaForm
+            estudiantes={estudiantes}
+            programas={listaProgramas}
+            onSaved={handleSaved}
+            onCancel={() => setCreating(false)}
+          />
+        </Modal>
       )}
     </section>
   );
