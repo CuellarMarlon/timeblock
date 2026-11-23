@@ -51,7 +51,7 @@ function renderPagina() {
   );
 }
 
-/** Rellena programa, periodo y coordinador, y espera a que carguen los bloques. */
+// Llena programa, periodo y coordinador, y espera a que carguen los bloques
 async function rellenarCabecera(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(await screen.findByLabelText("Programa"), "p1");
   await user.type(screen.getByLabelText("Periodo académico"), "2026-2027");
@@ -83,7 +83,7 @@ describe("HorarioNuevoPage", () => {
     });
     await user.click(screen.getByRole("button", { name: "Crear horario" }));
 
-    // La comparación es exacta: si se enviara estado u otro campo, fallaría.
+    // Se compara el cuerpo exacto: si se mandara el estado u otro campo, fallaría
     expect(mocks.crearHorario).toHaveBeenCalledWith({
       programaId: "p1",
       periodoAcademico: "2026-2027",

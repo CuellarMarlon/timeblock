@@ -5,8 +5,10 @@ import { cargarCatalogos } from "../../api/catalogos";
 import { useApiQuery } from "../../api/useApiQuery";
 import { QueryContent } from "../components/QueryContent";
 import { BloqueForm } from "./BloqueForm";
+import "./BloquesHorarios.css";
+import "./ProgramasPage.css";
 
-/** Página para editar un bloque existente. */
+// Página para editar un bloque que ya existe
 export function BloqueEditarPage() {
   const headingId = useId();
   const { bloqueId = "" } = useParams();
@@ -16,8 +18,14 @@ export function BloqueEditarPage() {
   const bloque = useApiQuery(load);
 
   return (
-    <section aria-labelledby={headingId}>
-      <h1 id={headingId}>Editar bloque</h1>
+    <section className="module" aria-labelledby={headingId}>
+      <header className="page-header">
+        <div>
+          <h1 id={headingId}>Editar bloque</h1>
+          <p>Cambia los datos del bloque. Solo se guardan los campos que modifiques.</p>
+        </div>
+      </header>
+
       <QueryContent
         query={bloque}
         onRetry={bloque.reload}

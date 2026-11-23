@@ -99,8 +99,8 @@ describe("HorariosPage", () => {
     renderPagina();
     await screen.findByRole("row", { name: /2026-2027/ });
 
-    await user.selectOptions(screen.getByLabelText("Programa"), "p1");
-    await user.type(screen.getByLabelText("Periodo académico"), "2026-2027");
+    await user.selectOptions(screen.getByLabelText("Filtrar por programa"), "p1");
+    await user.type(screen.getByLabelText("Filtrar por periodo académico"), "2026-2027");
     await user.click(screen.getByRole("button", { name: "Filtrar" }));
 
     const [filtros, paginacion] = mocks.listarHorarios.mock.lastCall ?? [];

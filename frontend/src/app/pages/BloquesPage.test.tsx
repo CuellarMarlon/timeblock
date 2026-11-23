@@ -96,8 +96,8 @@ describe("BloquesPage", () => {
     renderPagina();
     await screen.findByRole("link", { name: "Derivadas" });
 
-    await user.selectOptions(screen.getByLabelText("Programa"), "p1");
-    await user.selectOptions(screen.getByLabelText("Tipo de actividad"), "laboratorio");
+    await user.selectOptions(screen.getByLabelText("Filtrar por programa"), "p1");
+    await user.selectOptions(screen.getByLabelText("Filtrar por tipo de actividad"), "laboratorio");
 
     const [filtros, paginacion] = mocks.listarBloques.mock.lastCall ?? [];
     expect(filtros).toEqual({ programaId: "p1", tipoActividad: "laboratorio" });

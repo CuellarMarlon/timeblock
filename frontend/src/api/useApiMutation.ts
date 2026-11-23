@@ -10,21 +10,14 @@ export type MutationOutcome<T> = { ok: true; data: T } | { ok: false };
 
 export interface MutationResult<A extends unknown[], T> {
   state: MutationState<T>;
-  /** Ejecuta la operación. Nunca lanza: devuelve si tuvo éxito y los datos. */
+  // run nunca lanza: devuelve si salió bien y, en ese caso, los datos
   run: (...args: A) => Promise<MutationOutcome<T>>;
-  /** Vuelve al estado inicial, por ejemplo para ocultar un aviso. */
+  // Vuelve al estado inicial, por ejemplo para quitar un aviso
   reset: () => void;
 }
 
-/**
- * Ejecuta una operación de escritura (POST/PUT) y expone su estado de envío,
- * éxito o error. Evita que el formulario envíe dos veces mientras `loading`.
- *
- * @example
- * const crear = useApiMutation(crearBloque);
- * const resultado = await crear.run(datos);
- * if (resultado.ok) navigate(`/bloques/${resultado.data.id}`);
- */
+// Hook para operaciones de escritura (POST y PUT). Lleva el estado del envío
+// (enviando, éxito o error) para que el formulario pueda bloquear el botón mientras carga
 export function useApiMutation<A extends unknown[], T>(
   action: (...args: A) => Promise<T>,
 ): MutationResult<A, T> {

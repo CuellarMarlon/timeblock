@@ -7,15 +7,16 @@ import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { QueryContent } from "../components/QueryContent";
 import { SuccessMessage } from "../components/SuccessMessage";
-import "../components/ui.css";
 import { formatearFechaHora } from "../format";
+import "./BloquesHorarios.css";
+import "./ProgramasPage.css";
 
-/** Consulta de un horario con sus bloques y la fecha de cada uno. */
+// Muestra un horario con sus bloques y la fecha de cada uno
 export function HorarioDetallePage() {
   const headingId = useId();
   const { horarioId = "" } = useParams();
   const location = useLocation();
-  // Aviso enviado por el formulario tras crear el horario.
+  // Aviso que manda el formulario después de crear el horario
   const aviso = (location.state as { aviso?: string } | null)?.aviso;
 
   const catalogosQuery = useApiQuery(cargarCatalogos);
@@ -25,11 +26,16 @@ export function HorarioDetallePage() {
   const horario = useApiQuery(load);
 
   return (
-    <section aria-labelledby={headingId}>
-      <h1 id={headingId}>Detalle del horario</h1>
-      <p>
-        <Link to="/horarios">← Volver a los horarios</Link>
-      </p>
+    <section className="module" aria-labelledby={headingId}>
+      <header className="page-header">
+        <div>
+          <h1 id={headingId}>Detalle del horario</h1>
+          <p>Datos del horario y bloques con la fecha en que se imparte cada uno.</p>
+        </div>
+        <Link className="btn" to="/horarios">
+          ← Volver a los horarios
+        </Link>
+      </header>
 
       {aviso && <SuccessMessage message={aviso} />}
       {catalogosQuery.status === "error" && (
@@ -44,7 +50,7 @@ export function HorarioDetallePage() {
       >
         {(datos) => (
           <>
-            <dl className="detail-list">
+            <dl className="card detail-list">
               <dt>Programa</dt>
               <dd>{nombreDe(catalogos.programas, datos.programaId)}</dd>
               <dt>Periodo académico</dt>
@@ -55,43 +61,46 @@ export function HorarioDetallePage() {
               <dd>{formatearFechaHora(datos.fechaCreacion)}</dd>
               <dt>Estado</dt>
               <dd>
-                <span className="badge">{etiquetaEstadoHorario(datos.estado)}</span>
+                <span className="badge badge--generado">{etiquetaEstadoHorario(datos.estado)}</span>
               </dd>
               <dt>Bloques distintos</dt>
               <dd>{datos.cantTotalBloques}</dd>
             </dl>
 
-            <h2>Bloques y fechas</h2>
-            {datos.bloques.length === 0 ? (
-              <p role="status">Este horario no tiene bloques asociados.</p>
-            ) : (
-              <div className="table-wrapper">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Fecha</th>
-                      <th scope="col">Bloque</th>
-                      <th scope="col">Asignatura</th>
-                      <th scope="col">Actividad</th>
-                      <th scope="col">Complejidad</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {datos.bloques.map((bloque) => (
-                      <tr key={`${bloque.bloqueId}-${bloque.fecha}`}>
-                        <td>{bloque.fecha}</td>
-                        <td>
-                          <Link to={`/bloques/${bloque.bloqueId}`}>{bloque.descripcion}</Link>
-                        </td>
-                        <td>{nombreDe(catalogos.asignaturas, bloque.asignaturaId)}</td>
-                        <td>{etiquetaTipoActividad(bloque.tipoActividad)}</td>
-                        <td>{etiquetaNivelComplejidad(bloque.nivelComplejidad)}</td>
+            <section className="module-panel" aria-labelledby="horario-bloques-titulo">
+              <h2 id="horario-bloques-titulo">Bloques y fechas</h2>
+
+              {datos.bloques.length === 0 ? (
+                <p role="status">Este horario no tiene bloques asociados.</p>
+              ) : (
+                <div className="card">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Fecha</th>
+                        <th scope="col">Bloque</th>
+                        <th scope="col">Asignatura</th>
+                        <th scope="col">Actividad</th>
+                        <th scope="col">Complejidad</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody>
+                      {datos.bloques.map((bloque) => (
+                        <tr key={`${bloque.bloqueId}-${bloque.fecha}`}>
+                          <td>{bloque.fecha}</td>
+                          <td>
+                            <Link to={`/bloques/${bloque.bloqueId}`}>{bloque.descripcion}</Link>
+                          </td>
+                          <td>{nombreDe(catalogos.asignaturas, bloque.asignaturaId)}</td>
+                          <td>{etiquetaTipoActividad(bloque.tipoActividad)}</td>
+                          <td>{etiquetaNivelComplejidad(bloque.nivelComplejidad)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </>
         )}
       </QueryContent>

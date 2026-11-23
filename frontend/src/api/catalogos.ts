@@ -1,7 +1,7 @@
 import { apiClient } from "./client";
 import type { PagedResult } from "./types";
 
-/** Tamaño máximo de página que admite la API (docs/api/contrato-api.md). */
+// Máximo de elementos por página que acepta la API
 export const MAX_PAGE_SIZE = 100;
 
 export interface Programa {
@@ -15,13 +15,13 @@ export interface Asignatura {
   nombre: string;
 }
 
-/** Persona con perfil de coordinador, usada para atribuir bloques y horarios. */
+// Persona con perfil de coordinador. Guardamos solo lo que usan los selectores
 export interface Coordinador {
   id: string;
   nombre: string;
 }
 
-/** Datos de referencia que alimentan los selectores y los nombres mostrados. */
+// Datos de apoyo para llenar los selectores y mostrar nombres en vez de ids
 export interface Catalogos {
   programas: Programa[];
   asignaturas: Asignatura[];
@@ -34,10 +34,7 @@ export const CATALOGOS_VACIOS: Catalogos = {
   coordinadores: [],
 };
 
-/**
- * Carga programas, asignaturas y coordinadores en paralelo.
- * Se piden hasta {@link MAX_PAGE_SIZE} elementos de cada uno.
- */
+// Pide programas, asignaturas y coordinadores a la vez (hasta 100 de cada uno)
 export async function cargarCatalogos(signal?: AbortSignal): Promise<Catalogos> {
   const query = { page: 1, pageSize: MAX_PAGE_SIZE };
 
@@ -53,12 +50,12 @@ export async function cargarCatalogos(signal?: AbortSignal): Promise<Catalogos> 
   return {
     programas: programas.items,
     asignaturas: asignaturas.items,
-    // Del perfil solo interesan el identificador y el nombre.
+    // De cada persona solo hacen falta el id y el nombre
     coordinadores: coordinadores.items.map(({ id, nombre }) => ({ id, nombre })),
   };
 }
 
-/** Devuelve el nombre del elemento con ese id, o el propio id si no se encuentra. */
+// Busca el nombre por id. Si no lo encuentra, devuelve el id tal cual
 export function nombreDe(lista: { id: string; nombre: string }[], id: string): string {
   return lista.find((elemento) => elemento.id === id)?.nombre ?? id;
 }

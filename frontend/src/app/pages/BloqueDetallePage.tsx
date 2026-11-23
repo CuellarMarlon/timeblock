@@ -14,14 +14,15 @@ import { ErrorMessage } from "../components/ErrorMessage";
 import { QueryContent } from "../components/QueryContent";
 import { SelectField } from "../components/SelectField";
 import { SuccessMessage } from "../components/SuccessMessage";
-import "../components/ui.css";
+import "./BloquesHorarios.css";
+import "./ProgramasPage.css";
 
-/** Consulta de un bloque y asociación a programas adicionales. */
+// Muestra un bloque y deja asociarlo a más programas
 export function BloqueDetallePage() {
   const headingId = useId();
   const { bloqueId = "" } = useParams();
   const location = useLocation();
-  // Aviso enviado por el formulario tras crear o editar el bloque.
+  // Aviso que manda el formulario después de crear o editar el bloque
   const avisoInicial = (location.state as { aviso?: string } | null)?.aviso;
 
   const catalogosQuery = useApiQuery(cargarCatalogos);
@@ -30,8 +31,8 @@ export function BloqueDetallePage() {
   const load = useCallback((signal: AbortSignal) => obtenerBloque(bloqueId, signal), [bloqueId]);
   const bloque = useApiQuery(load);
 
-  // La mutación vive aquí (y no en la sección) porque al recargar el bloque
-  // la sección se desmonta y perdería el aviso de éxito.
+  // La mutación se queda aquí y no en el detalle: al recargar el bloque el detalle
+  // se vuelve a montar y se perdería el aviso de éxito
   const asociar = useApiMutation(asociarBloqueAPrograma);
   const [asociado, setAsociado] = useState<string | null>(null);
 
@@ -45,16 +46,21 @@ export function BloqueDetallePage() {
   }
 
   return (
-    <section aria-labelledby={headingId}>
-      <div className="page-header">
-        <h1 id={headingId}>Detalle del bloque</h1>
-        <Link className="button-link" to={`/bloques/${bloqueId}/editar`}>
-          Editar
-        </Link>
-      </div>
-      <p>
-        <Link to="/bloques">← Volver a los bloques</Link>
-      </p>
+    <section className="module" aria-labelledby={headingId}>
+      <header className="page-header">
+        <div>
+          <h1 id={headingId}>Detalle del bloque</h1>
+          <p>Consulta los datos del bloque y los programas donde se puede utilizar.</p>
+        </div>
+        <div className="header-actions">
+          <Link className="btn" to="/bloques">
+            ← Volver a los bloques
+          </Link>
+          <Link className="btn btn-primary" to={`/bloques/${bloqueId}/editar`}>
+            Editar
+          </Link>
+        </div>
+      </header>
 
       {avisoInicial && <SuccessMessage message={avisoInicial} />}
       {asociado && <SuccessMessage message={`Bloque asociado al programa «${asociado}».`} />}
@@ -95,7 +101,7 @@ function BloqueDetalle({ bloque, catalogos, asociando, onAsociar }: BloqueDetall
 
   return (
     <>
-      <dl className="detail-list">
+      <dl className="card detail-list">
         <dt>Descripción</dt>
         <dd>{bloque.descripcion}</dd>
         <dt>Asignatura</dt>
@@ -108,43 +114,50 @@ function BloqueDetalle({ bloque, catalogos, asociando, onAsociar }: BloqueDetall
         <dd>{nombreDe(catalogos.coordinadores, bloque.coordinadorId)}</dd>
       </dl>
 
-      <h2>Programas asociados</h2>
-      {bloque.programasIds.length === 0 ? (
-        <p>Este bloque todavía no está asociado a ningún programa.</p>
-      ) : (
-        <ul>
-          {bloque.programasIds.map((id) => (
-            <li key={id}>{nombreDe(catalogos.programas, id)}</li>
-          ))}
-        </ul>
-      )}
+      <section className="module-panel" aria-labelledby="bloque-programas-titulo">
+        <h2 id="bloque-programas-titulo">Programas asociados</h2>
 
-      {disponibles.length > 0 ? (
-        <form
-          className="inline-form"
-          aria-label="Asociar a un programa"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (programaId) {
-              onAsociar(programaId);
-              setProgramaId("");
-            }
-          }}
-        >
-          <SelectField
-            label="Asociar a un programa"
-            placeholder="Selecciona un programa"
-            value={programaId}
-            options={disponibles.map((p) => ({ value: p.id, label: p.nombre }))}
-            onChange={setProgramaId}
-          />
-          <button type="submit" disabled={!programaId || asociando}>
-            {asociando ? "Asociando…" : "Asociar"}
-          </button>
-        </form>
-      ) : (
-        catalogos.programas.length > 0 && <p>El bloque ya está asociado a todos los programas.</p>
-      )}
+        {bloque.programasIds.length === 0 ? (
+          <p>Este bloque todavía no está asociado a ningún programa.</p>
+        ) : (
+          <ul className="program-list">
+            {bloque.programasIds.map((id) => (
+              <li key={id}>
+                <span className="badge badge--coordinador">
+                  {nombreDe(catalogos.programas, id)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {disponibles.length > 0 ? (
+          <form
+            className="card associate-form associate-form--simple"
+            aria-label="Asociar a un programa"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (programaId) {
+                onAsociar(programaId);
+                setProgramaId("");
+              }
+            }}
+          >
+            <SelectField
+              label="Asociar a un programa"
+              placeholder="Selecciona un programa"
+              value={programaId}
+              options={disponibles.map((p) => ({ value: p.id, label: p.nombre }))}
+              onChange={setProgramaId}
+            />
+            <button type="submit" className="btn btn-primary" disabled={!programaId || asociando}>
+              {asociando ? "Asociando…" : "Asociar"}
+            </button>
+          </form>
+        ) : (
+          catalogos.programas.length > 0 && <p>El bloque ya está asociado a todos los programas.</p>
+        )}
+      </section>
     </>
   );
 }

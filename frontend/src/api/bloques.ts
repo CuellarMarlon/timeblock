@@ -4,7 +4,7 @@ import type { PageParams, PagedResult } from "./types";
 export type TipoActividad = "teoria" | "practica" | "laboratorio";
 export type NivelComplejidad = "bajo" | "medio" | "alto";
 
-/** Opciones de los selectores, con la etiqueta que ve el usuario. */
+// Opciones de los selectores, con el texto que ve el usuario
 export const TIPOS_ACTIVIDAD: { value: TipoActividad; label: string }[] = [
   { value: "teoria", label: "Teoría" },
   { value: "practica", label: "Práctica" },
@@ -44,7 +44,7 @@ export interface CrearBloque {
   programasIds: string[];
 }
 
-/** Todos los campos son opcionales, pero la API exige enviar al menos uno. */
+// Todos los campos son opcionales, pero la API pide mandar al menos uno
 export interface ActualizarBloque {
   descripcion?: string;
   tipoActividad?: TipoActividad;
@@ -83,7 +83,7 @@ export function actualizarBloque(id: string, cambios: ActualizarBloque): Promise
   return apiClient.put<Bloque>(`/api/bloques/${id}`, cambios);
 }
 
-/** Asocia el bloque a un programa. Es idempotente: repetirla no produce error. */
+// Asocia el bloque a un programa. Si ya estaba asociado no da error
 export function asociarBloqueAPrograma(bloqueId: string, programaId: string): Promise<void> {
   return apiClient.put<void>(`/api/bloques/${bloqueId}/programas/${programaId}`);
 }

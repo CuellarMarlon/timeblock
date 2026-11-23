@@ -1,5 +1,4 @@
 import { useId } from "react";
-import "./ui.css";
 
 export interface SelectOption {
   value: string;
@@ -11,14 +10,15 @@ interface SelectFieldProps {
   value: string;
   options: SelectOption[];
   onChange: (value: string) => void;
-  /** Texto de la opción vacía ("Todos", "Selecciona un programa"…). */
+  // Texto de la opción vacía ("Selecciona un programa", por ejemplo)
   placeholder: string;
-  /** Mensaje de validación que se muestra bajo el campo. */
+  // Mensaje de validación que se muestra debajo del campo
   error?: string;
   disabled?: boolean;
 }
 
-/** Selector con etiqueta accesible, opción vacía y mensaje de error opcional. */
+// Selector para formularios: la etiqueta envuelve al select (igual que en el resto
+// de formularios del proyecto) y el error sale debajo, fuera de la etiqueta
 export function SelectField({
   label,
   value,
@@ -28,27 +28,27 @@ export function SelectField({
   error,
   disabled,
 }: SelectFieldProps) {
-  const id = useId();
-  const errorId = `${id}-error`;
+  const errorId = `${useId()}-error`;
 
   return (
     <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <select
-        id={id}
-        value={value}
-        disabled={disabled}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <label>
+        {label}
+        <select
+          value={value}
+          disabled={disabled}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? errorId : undefined}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          <option value="">{placeholder}</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
       {error && (
         <p className="field-error" id={errorId}>
           {error}
