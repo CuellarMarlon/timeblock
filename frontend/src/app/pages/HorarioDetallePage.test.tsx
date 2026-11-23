@@ -45,7 +45,7 @@ const horario = {
   fechaCreacion: "2026-10-01T12:00:00Z",
   estado: "generado",
   cantTotalBloques: 1,
-  // Un mismo bloque puede aparecer en varias fechas.
+  // Un mismo bloque puede salir en varias fechas
   bloques: [
     { ...bloqueEnHorario, fecha: "2026-11-20" },
     { ...bloqueEnHorario, fecha: "2026-11-27" },

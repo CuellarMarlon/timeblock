@@ -8,9 +8,10 @@ import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { QueryContent } from "../components/QueryContent";
 import { SelectField } from "../components/SelectField";
-import "../components/ui.css";
+import "./BloquesHorarios.css";
+import "./ProgramasPage.css";
 
-/** Bloques elegidos: la clave es el id del bloque y el valor su fecha (`YYYY-MM-DD`). */
+// Bloques elegidos: la clave es el id del bloque y el valor su fecha (YYYY-MM-DD)
 type Seleccion = Record<string, string>;
 
 interface Errores {
@@ -24,12 +25,10 @@ interface HorarioFormProps {
   catalogos: Catalogos;
 }
 
-/**
- * Formulario para armar un horario manualmente: programa, periodo, coordinador
- * y bloques con una fecha obligatoria por cada uno. No pide ni envía el estado
- * del horario ni la fecha de inicio de la autorización: las fija el servidor.
- * En M4 tampoco se piden hora, periodo de impartición ni aula.
- */
+// Formulario para armar un horario a mano: programa, periodo, coordinador y bloques,
+// con una fecha obligatoria por cada bloque. No pide ni manda el estado del horario
+// ni la fecha de inicio de la autorización, porque las pone el servidor.
+// En M4 tampoco se piden hora, periodo de impartición ni aula
 export function HorarioForm({ catalogos }: HorarioFormProps) {
   const navigate = useNavigate();
   const [programaId, setProgramaId] = useState("");
@@ -42,7 +41,7 @@ export function HorarioForm({ catalogos }: HorarioFormProps) {
   const crear = useApiMutation(crearHorario);
   const enviando = crear.state.status === "loading";
 
-  /** Los bloques disponibles dependen del programa, así que se reinicia la selección. */
+  // Los bloques disponibles dependen del programa, así que al cambiarlo se borra la selección
   function cambiarPrograma(id: string) {
     setProgramaId(id);
     setSeleccion({});
@@ -85,7 +84,12 @@ export function HorarioForm({ catalogos }: HorarioFormProps) {
   }
 
   return (
-    <form className="form" onSubmit={enviar} noValidate aria-label="Nuevo horario">
+    <form
+      className="module-form card form-card"
+      onSubmit={enviar}
+      noValidate
+      aria-label="Nuevo horario"
+    >
       <SelectField
         label="Programa"
         placeholder="Selecciona un programa"
@@ -96,16 +100,17 @@ export function HorarioForm({ catalogos }: HorarioFormProps) {
       />
 
       <div className="field">
-        <label htmlFor="horario-periodo">Periodo académico</label>
-        <input
-          id="horario-periodo"
-          type="text"
-          placeholder="2026-2027"
-          value={periodoAcademico}
-          aria-invalid={errores.periodoAcademico ? true : undefined}
-          aria-describedby={errores.periodoAcademico ? "horario-periodo-error" : undefined}
-          onChange={(event) => setPeriodoAcademico(event.target.value)}
-        />
+        <label>
+          Periodo académico
+          <input
+            type="text"
+            placeholder="2026-2027"
+            value={periodoAcademico}
+            aria-invalid={errores.periodoAcademico ? true : undefined}
+            aria-describedby={errores.periodoAcademico ? "horario-periodo-error" : undefined}
+            onChange={(event) => setPeriodoAcademico(event.target.value)}
+          />
+        </label>
         {errores.periodoAcademico && (
           <p className="field-error" id="horario-periodo-error">
             {errores.periodoAcademico}
@@ -122,7 +127,7 @@ export function HorarioForm({ catalogos }: HorarioFormProps) {
         onChange={setCoordinadorId}
       />
 
-      <fieldset>
+      <fieldset className="fieldset--plano">
         <legend>Bloques y fechas</legend>
         {programaId ? (
           <SelectorBloques
@@ -146,10 +151,12 @@ export function HorarioForm({ catalogos }: HorarioFormProps) {
       {crear.state.status === "error" && <ErrorMessage error={crear.state.error} />}
 
       <div className="form-actions">
-        <button type="submit" disabled={enviando}>
+        <Link className="btn" to="/horarios">
+          Cancelar
+        </Link>
+        <button type="submit" className="btn btn-primary" disabled={enviando}>
           {enviando ? "Guardando…" : "Crear horario"}
         </button>
-        <Link to="/horarios">Cancelar</Link>
       </div>
     </form>
   );
@@ -160,11 +167,11 @@ interface SelectorBloquesProps {
   catalogos: Catalogos;
   seleccion: Seleccion;
   onChange: (seleccion: Seleccion) => void;
-  /** Si es `true`, resalta los bloques elegidos a los que aún les falta la fecha. */
+  // Si es true, marca los bloques elegidos a los que todavía les falta la fecha
   marcarFaltantes: boolean;
 }
 
-/** Lista los bloques del programa y pide una fecha por cada bloque marcado. */
+// Lista los bloques del programa y pide una fecha por cada bloque marcado
 function SelectorBloques({
   programaId,
   catalogos,
@@ -204,8 +211,8 @@ function SelectorBloques({
               Se muestran los primeros {pagina.items.length} de {pagina.totalItems} bloques.
             </p>
           )}
-          <div className="table-wrapper">
-            <table className="data-table">
+          <div className="card">
+            <table className="table table--seleccion">
               <thead>
                 <tr>
                   <th scope="col">Incluir</th>

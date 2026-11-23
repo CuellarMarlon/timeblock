@@ -2,14 +2,14 @@ import { apiClient } from "./client";
 import type { NivelComplejidad, TipoActividad } from "./bloques";
 import type { PageParams, PagedResult } from "./types";
 
-/** La API serializa el estado en camelCase; en M4 solo existe `generado`. */
+// La API manda el estado en camelCase. En M4 solo existe "generado"
 export type EstadoHorario = "generado";
 
 export function etiquetaEstadoHorario(estado: EstadoHorario): string {
   return estado.toUpperCase();
 }
 
-/** Bloque asociado a un horario, con la fecha en que se imparte (`YYYY-MM-DD`). */
+// Un bloque dentro de un horario, con la fecha en que se imparte (YYYY-MM-DD)
 export interface BloqueEnHorario {
   bloqueId: string;
   descripcion: string;
@@ -17,7 +17,7 @@ export interface BloqueEnHorario {
   tipoActividad: TipoActividad;
   nivelComplejidad: NivelComplejidad;
   fecha: string;
-  /** En M4 los cuatro campos siguientes llegan siempre nulos. */
+  // En M4 estos cuatro campos siempre llegan en null
   horaInicio: string | null;
   horaFin: string | null;
   periodoImp: string | null;
@@ -36,10 +36,8 @@ export interface Horario {
   bloques: BloqueEnHorario[];
 }
 
-/**
- * Cuerpo de la creación. El cliente no envía el estado, la fecha de creación
- * ni la fecha de inicio de la autorización: las determina el servidor.
- */
+// Lo que se manda al crear. El estado, la fecha de creación y la fecha de inicio
+// de la autorización los pone el servidor, por eso no aparecen aquí
 export interface CrearHorario {
   programaId: string;
   periodoAcademico: string;

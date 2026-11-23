@@ -12,11 +12,12 @@ import { nombreDe, type Catalogos } from "../../api/catalogos";
 import { useApiMutation } from "../../api/useApiMutation";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { SelectField } from "../components/SelectField";
-import "../components/ui.css";
+import "./BloquesHorarios.css";
+import "./ProgramasPage.css";
 
 interface BloqueFormProps {
   catalogos: Catalogos;
-  /** Si se indica, el formulario edita ese bloque; si no, crea uno nuevo. */
+  // Si viene un bloque, el formulario lo edita; si no, crea uno nuevo
   bloque?: Bloque;
 }
 
@@ -24,11 +25,9 @@ type Campo =
   "descripcion" | "asignaturaId" | "tipoActividad" | "nivelComplejidad" | "coordinadorId";
 type Errores = Partial<Record<Campo, string>>;
 
-/**
- * Formulario para crear o editar un bloque. Al crear permite elegir el
- * coordinador y los programas iniciales; al editar solo se envían los campos
- * que cambiaron, porque la API exige al menos uno.
- */
+// Formulario para crear o editar un bloque. Al crear se elige el coordinador y los
+// programas donde se usará; al editar solo se mandan los campos que cambiaron,
+// porque la API exige al menos uno
 export function BloqueForm({ catalogos, bloque }: BloqueFormProps) {
   const navigate = useNavigate();
   const editando = bloque !== undefined;
@@ -108,21 +107,22 @@ export function BloqueForm({ catalogos, bloque }: BloqueFormProps) {
 
   return (
     <form
-      className="form"
+      className="module-form card form-card form-card--estrecho"
       onSubmit={enviar}
       noValidate
       aria-label={editando ? "Editar bloque" : "Nuevo bloque"}
     >
       <div className="field">
-        <label htmlFor="bloque-descripcion">Descripción</label>
-        <input
-          id="bloque-descripcion"
-          type="text"
-          value={descripcion}
-          aria-invalid={errores.descripcion ? true : undefined}
-          aria-describedby={errores.descripcion ? "bloque-descripcion-error" : undefined}
-          onChange={(event) => setDescripcion(event.target.value)}
-        />
+        <label>
+          Descripción
+          <input
+            type="text"
+            value={descripcion}
+            aria-invalid={errores.descripcion ? true : undefined}
+            aria-describedby={errores.descripcion ? "bloque-descripcion-error" : undefined}
+            onChange={(event) => setDescripcion(event.target.value)}
+          />
+        </label>
         {errores.descripcion && (
           <p className="field-error" id="bloque-descripcion-error">
             {errores.descripcion}
@@ -178,12 +178,12 @@ export function BloqueForm({ catalogos, bloque }: BloqueFormProps) {
               <ul className="check-list">
                 {catalogos.programas.map((programa) => (
                   <li key={programa.id}>
-                    <label>
+                    <label className="check">
                       <input
                         type="checkbox"
                         checked={programasIds.includes(programa.id)}
                         onChange={(event) => alternarPrograma(programa.id, event.target.checked)}
-                      />{" "}
+                      />
                       {programa.nombre}
                     </label>
                   </li>
@@ -202,16 +202,18 @@ export function BloqueForm({ catalogos, bloque }: BloqueFormProps) {
       {envio.status === "error" && <ErrorMessage error={envio.error} />}
 
       <div className="form-actions">
-        <button type="submit" disabled={enviando}>
+        <Link className="btn" to={editando ? `/bloques/${bloque.id}` : "/bloques"}>
+          Cancelar
+        </Link>
+        <button type="submit" className="btn btn-primary" disabled={enviando}>
           {enviando ? "Guardando…" : editando ? "Guardar cambios" : "Crear bloque"}
         </button>
-        <Link to={editando ? `/bloques/${bloque.id}` : "/bloques"}>Cancelar</Link>
       </div>
     </form>
   );
 }
 
-/** Compara el formulario con el bloque original y devuelve solo lo modificado. */
+// Compara lo escrito en el formulario con el bloque original y devuelve solo lo que cambió
 function calcularCambios(
   original: Bloque,
   nuevo: {
