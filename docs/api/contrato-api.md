@@ -33,16 +33,16 @@ Las respuestas de error usan Problem Details (`application/problem+json`). Los e
 }
 ```
 
-| Código | Uso |
-|---:|---|
-| `200` | Consulta o actualización correcta. |
-| `201` | Recurso creado. |
-| `204` | Asociación idempotente completada sin cuerpo. |
-| `400` | JSON, parámetros o datos inválidos. |
-| `403` | La autorización de negocio del coordinador no permite la operación; no representa autenticación de usuario. |
-| `404` | El recurso indicado no existe. |
-| `409` | Duplicado o conflicto con una regla de integridad. |
-| `500` | Error inesperado; no incluir detalles internos ni secretos. |
+| Código | Uso                                                                                                         |
+| -----: | ----------------------------------------------------------------------------------------------------------- |
+|  `200` | Consulta o actualización correcta.                                                                          |
+|  `201` | Recurso creado.                                                                                             |
+|  `204` | Asociación idempotente completada sin cuerpo.                                                               |
+|  `400` | JSON, parámetros o datos inválidos.                                                                         |
+|  `403` | La autorización de negocio del coordinador no permite la operación; no representa autenticación de usuario. |
+|  `404` | El recurso indicado no existe.                                                                              |
+|  `409` | Duplicado o conflicto con una regla de integridad.                                                          |
+|  `500` | Error inesperado; no incluir detalles internos ni secretos.                                                 |
 
 ## Respuestas de listados
 
@@ -98,3 +98,29 @@ No incluye generación automática, completar horas/periodo/aula de las impartic
 6. M4 utiliza `BLOQUE_EN_HORARIO` para asociar horario, bloque y fecha, mediante la clave `(idHorario, idBloque, fecha)`. La fecha es obligatoria. En M4, `horaInicio`, `horaFin`, `periodoImp` e `idAula` pueden estar todos sin valor. Cuando se complete la impartición, los cuatro deben estar informados y debe cumplirse `horaInicio < horaFin`. La detección de conflictos de aula queda para un hito posterior. `cantTotalBloques` cuenta los bloques distintos asociados al horario, no las fechas en que aparecen.
 
 Las convenciones de rutas, paginación y códigos de respuesta se deben mantener sincronizadas con el documento OpenAPI cuando se implementen los endpoints.
+
+# Matrículas: endpoints que el frontend asume
+
+## GET /api/matriculas (pendiente de implementar)
+
+Lista todas las matrículas con filtros opcionales y paginación.
+
+Parámetros de consulta (todos opcionales):
+
+- `estudianteId` (uuid): solo las matrículas de ese estudiante.
+- `programaId` (uuid): solo las matrículas de ese programa.
+- `page` (desde 1) y `pageSize` (hasta 100).
+
+Si se indican ambos filtros, devuelve las matrículas que cumplen los dos
+(a lo sumo una). El frontend lo usa también para detectar duplicados.
+
+Respuesta `200`: `PagedResult<MatriculaResponse>`
+(`items`, `page`, `pageSize`, `totalItems`), con
+`MatriculaResponse = { estudianteId, programaId }`.
+
+## Edición de matrículas (pendiente de decisión)
+
+El diseño incluye "editar matrícula" (cambiar estudiante o programa), pero el
+contrato no permite modificar ni eliminar una matrícula. Hace falta
+`DELETE /api/programas/{programaId}/matriculas/{estudianteId}` (y/o un `PUT`).
+Hasta entonces el frontend no muestra el botón de editar.

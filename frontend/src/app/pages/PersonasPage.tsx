@@ -1,11 +1,7 @@
-import { ModulePlaceholder } from "../components/ModulePlaceholder";
+import "./ProgramasPage.css";
+import { PersonasPanel } from "./PersonasPanel";
 
-/** Vista inicial del módulo de personas y perfiles. */
+/** Módulo de personas y perfiles. */
 export function PersonasPage() {
-  return (
-    <ModulePlaceholder
-      title="Personas y perfiles"
-      description="Gestión de estudiantes, coordinadores académicos y jefes de departamento."
-    />
-  );
+  return <PersonasPanel />;
 }
