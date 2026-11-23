@@ -32,8 +32,8 @@ export function AsignaturaForm({ asignatura, onSaved, onCancel }: AsignaturaForm
       return;
     }
     setError(null);
-    const ok = await guardar.submit({ nombre: nombre.trim() });
-    if (ok) onSaved();
+    const ok = await guardar.run({ nombre: nombre.trim() });
+    if (ok.ok) onSaved();
   }
 
   return (
@@ -48,14 +48,14 @@ export function AsignaturaForm({ asignatura, onSaved, onCancel }: AsignaturaForm
       </label>
       {error && <p className="field-error">{error}</p>}
 
-      {guardar.status === "error" && <ErrorMessage error={guardar.error} />}
+      {guardar.state.status === "error" && <ErrorMessage error={guardar.state.error} />}
 
       <div className="form-actions">
         <button type="button" className="btn" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary" disabled={guardar.status === "pending"}>
-          {guardar.status === "pending" ? "Guardando…" : "Guardar asignatura"}
+        <button type="submit" className="btn btn-primary" disabled={guardar.state.status === "loading"}>
+          {guardar.state.status === "loading" ? "Guardando…" : "Guardar asignatura"}
         </button>
       </div>
     </form>

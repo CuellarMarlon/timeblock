@@ -38,8 +38,8 @@ export function ProgramaForm({ programa, onSaved, onCancel }: ProgramaFormProps)
     setErrors(nuevosErrores);
     if (Object.keys(nuevosErrores).length > 0) return;
 
-    const ok = await guardar.submit({ nombre: nombre.trim(), planEstudio: planEstudio.trim() });
-    if (ok) onSaved();
+    const ok = await guardar.run({ nombre: nombre.trim(), planEstudio: planEstudio.trim() });
+    if (ok.ok) onSaved();
   }
 
   return (
@@ -64,14 +64,14 @@ export function ProgramaForm({ programa, onSaved, onCancel }: ProgramaFormProps)
       </label>
       {errors.planEstudio && <p className="field-error">{errors.planEstudio}</p>}
 
-      {guardar.status === "error" && <ErrorMessage error={guardar.error} />}
+      {guardar.state.status === "error" && <ErrorMessage error={guardar.state.error} />}
 
       <div className="form-actions">
         <button type="button" className="btn" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary" disabled={guardar.status === "pending"}>
-          {guardar.status === "pending" ? "Guardando…" : "Guardar programa"}
+        <button type="submit" className="btn btn-primary" disabled={guardar.state.status === "loading"}>
+          {guardar.state.status === "loading" ? "Guardando…" : "Guardar programa"}
         </button>
       </div>
     </form>

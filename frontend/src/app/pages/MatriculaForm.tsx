@@ -57,8 +57,8 @@ export function MatriculaForm({ estudiantes, programas, onSaved, onCancel }: Mat
       setComprobando(false);
     }
 
-    const ok = await mutation.submit({ programaId, estudianteId });
-    if (ok) onSaved();
+    const ok = await mutation.run({ programaId, estudianteId });
+    if (ok.ok) onSaved();
   }
 
   return (
@@ -108,7 +108,7 @@ export function MatriculaForm({ estudiantes, programas, onSaved, onCancel }: Mat
           Este estudiante ya está matriculado en ese programa.
         </p>
       )}
-      {mutation.status === "error" && <ErrorMessage error={mutation.error} />}
+      {mutation.state.status === "error" && <ErrorMessage error={mutation.state.error} />}
 
       <div className="form-actions">
         <button type="button" className="btn" onClick={onCancel}>
@@ -117,9 +117,9 @@ export function MatriculaForm({ estudiantes, programas, onSaved, onCancel }: Mat
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={comprobando || mutation.status === "pending"}
+          disabled={comprobando || mutation.state.status === "loading"}
         >
-          {comprobando || mutation.status === "pending" ? "Matriculando…" : "Matricular"}
+          {comprobando || mutation.state.status === "loading" ? "Matriculando…" : "Matricular"}
         </button>
       </div>
     </form>

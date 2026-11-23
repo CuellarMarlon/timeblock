@@ -70,8 +70,8 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
     setErrors(nuevos);
     if (Object.keys(nuevos).length > 0) return;
 
-    const ok = await mutation.submit({ programaId, asignaturaId });
-    if (ok) {
+    const ok = await mutation.run({ programaId, asignaturaId });
+    if (ok.ok) {
       setAsignaturaId("");
       setNotice("Asignatura asociada correctamente.");
       asociadas.reload();
@@ -143,9 +143,9 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={mutation.status === "pending"}
+                  disabled={mutation.state.status === "loading"}
                 >
-                  {mutation.status === "pending" ? "Asociando…" : "Asociar"}
+                  {mutation.state.status === "loading" ? "Asociando…" : "Asociar"}
                 </button>
               </form>
             )}
@@ -158,7 +158,7 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
           {notice}
         </p>
       )}
-      {mutation.status === "error" && <ErrorMessage error={mutation.error} />}
+      {mutation.state.status === "error" && <ErrorMessage error={mutation.state.error} />}
 
       {programaId && (
         <QueryContent

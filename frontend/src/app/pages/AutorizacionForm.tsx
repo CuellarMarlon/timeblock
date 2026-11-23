@@ -60,14 +60,14 @@ export function AutorizacionForm({
     setErrors(nuevos);
     if (Object.keys(nuevos).length > 0) return;
 
-    const ok = await guardar.submit({
+    const ok = await guardar.run({
       programaId,
       fechaInicio,
       fechaFin: fechaFin || null,
       puedeGenerar,
       puedeValidar,
     });
-    if (ok) onSaved();
+    if (ok.ok) onSaved();
   }
 
   const editando = autorizacion !== undefined;
@@ -132,14 +132,14 @@ export function AutorizacionForm({
         Puede validar horarios
       </label>
 
-      {guardar.status === "error" && <ErrorMessage error={guardar.error} />}
+      {guardar.state.status === "error" && <ErrorMessage error={guardar.state.error} />}
 
       <div className="form-actions">
         <button type="button" className="btn" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary" disabled={guardar.status === "pending"}>
-          {guardar.status === "pending" ? "Guardando…" : "Guardar autorización"}
+        <button type="submit" className="btn btn-primary" disabled={guardar.state.status === "loading"}>
+          {guardar.state.status === "loading" ? "Guardando…" : "Guardar autorización"}
         </button>
       </div>
     </form>

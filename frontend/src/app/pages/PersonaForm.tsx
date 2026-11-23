@@ -89,8 +89,8 @@ export function PersonaForm({ persona, coordinadores, onSaved, onCancel }: Perso
     setErrors(nuevos);
     if (Object.keys(nuevos).length > 0 || !perfil) return;
 
-    const ok = await guardar.submit({ nombre: nombre.trim(), perfil });
-    if (ok) onSaved();
+    const ok = await guardar.run({ nombre: nombre.trim(), perfil });
+    if (ok.ok) onSaved();
   }
 
   return (
@@ -186,14 +186,14 @@ export function PersonaForm({ persona, coordinadores, onSaved, onCancel }: Perso
         </>
       )}
 
-      {guardar.status === "error" && <ErrorMessage error={guardar.error} />}
+      {guardar.state.status === "error" && <ErrorMessage error={guardar.state.error} />}
 
       <div className="form-actions">
         <button type="button" className="btn" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary" disabled={guardar.status === "pending"}>
-          {guardar.status === "pending" ? "Guardando…" : "Guardar persona"}
+        <button type="submit" className="btn btn-primary" disabled={guardar.state.status === "loading"}>
+          {guardar.state.status === "loading" ? "Guardando…" : "Guardar persona"}
         </button>
       </div>
     </form>
