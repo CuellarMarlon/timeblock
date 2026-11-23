@@ -42,4 +42,19 @@ public sealed class MatriculasController(MatriculasService matriculas) : Control
         var result = await matriculas.ListarPorEstudianteAsync(estudianteId, page, pageSize, ct);
         return Ok(result.Map(MatriculaResponse.FromDomain));
     }
+
+    [HttpGet("api/matriculas")]
+    [ProducesResponseType<PagedResult<MatriculaResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<MatriculaResponse>>> Listar(
+        [FromQuery] Guid? estudianteId,
+        [FromQuery] Guid? programaId,
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        CancellationToken ct)
+    {
+        var result = await matriculas.ListarAsync(estudianteId, programaId, page, pageSize, ct);
+
+        return Ok(result.Map(MatriculaResponse.FromDomain));
+    }
 }
