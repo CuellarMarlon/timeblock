@@ -1,0 +1,183 @@
+/* Estilos de los módulos de bloques y horarios.
+   Lo que ya existe en index.css, ui.css y ProgramasPage.css se reutiliza tal cual;
+   aquí solo va lo que esas hojas no cubren. */
+
+/* Enlaces con aspecto de botón: sin subrayado */
+a.btn,
+a.btn-icon {
+  text-decoration: none;
+}
+
+/* Enlaces dentro del contenido (descripciones, "volver"…) con el verde de la marca */
+.module a:not(.btn):not(.btn-icon) {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.module a:not(.btn):not(.btn-icon):hover {
+  text-decoration: underline;
+}
+
+/* Botones que van juntos en la cabecera de la página */
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Barra de filtros encima de la tabla */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filters select,
+.filters input {
+  min-width: 11rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  font-weight: 400;
+}
+
+.filters select:focus-visible,
+.filters input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Campo de formulario: etiqueta con el control y, debajo, el mensaje de error */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Formularios de página completa dentro de una tarjeta */
+.form-card {
+  padding: 1.25rem;
+}
+
+.form-card--estrecho {
+  max-width: 40rem;
+}
+
+/* Casillas de verificación: sin el relleno que los inputs de texto reciben en .module-form */
+.module-form input[type="checkbox"] {
+  width: 1.05rem;
+  height: 1.05rem;
+  padding: 0;
+  accent-color: var(--accent);
+}
+
+/* Grupo de campos con título */
+.module-form fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.module-form legend {
+  padding: 0 0.35rem;
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+/* Variante sin borde para el grupo que ya contiene una tarjeta con tabla */
+.module-form fieldset.fieldset--plano {
+  padding: 0;
+  border: 0;
+}
+
+.module-form fieldset.fieldset--plano legend {
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.check-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Tabla de selección de bloques dentro del formulario de horarios */
+.table input[type="date"] {
+  min-width: 9.5rem;
+}
+
+.table td .field-error {
+  margin-top: 0.25rem;
+}
+
+.table--seleccion td:first-child,
+.table--seleccion th:first-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Datos de un bloque o de un horario en la pantalla de detalle */
+.detail-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.6rem 1.5rem;
+  margin: 0;
+  padding: 1.1rem 1.25rem;
+}
+
+.detail-list dt {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.detail-list dd {
+  margin: 0;
+  color: var(--text-h);
+}
+
+@media (max-width: 36rem) {
+  .detail-list {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  .detail-list dd {
+    margin-bottom: 0.6rem;
+  }
+}
+
+/* Lista de programas asociados a un bloque */
+.program-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Estado GENERADO de un horario, con el verde de la marca como el badge de coordinador */
+.badge--generado {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+/* Formulario de asociación con un solo selector: el selector y el botón */
+@media (min-width: 48rem) {
+  .associate-form.associate-form--simple {
+    grid-template-columns: minmax(0, 24rem) auto;
+    justify-content: start;
+  }
+}
