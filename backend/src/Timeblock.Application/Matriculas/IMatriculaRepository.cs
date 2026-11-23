@@ -27,4 +27,6 @@ public interface IMatriculaRepository
 
     Task<PagedResult<Matricula>> ListarPorEstudianteAsync(
         Guid estudianteId, PageRequest page, CancellationToken cancellationToken);
+    
+    Task<PagedResult<Matricula>> ListarAsync(Guid? estudianteId, Guid? programaId, PageRequest page, CancellationToken cancellationToken);
 }

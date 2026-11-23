@@ -39,6 +39,13 @@ public sealed class MatriculasService(IMatriculaRepository matriculas) : ICasoDe
         return await matriculas.ListarPorEstudianteAsync(estudianteId, pagina, ct);
     }
 
+    public async Task<PagedResult<Matricula>> ListarAsync(Guid? estudianteId, Guid? programaId, int? page, int? pageSize, CancellationToken ct)
+    {
+        PageRequest pagina = CrearPagina(page, pageSize);
+
+        return await matriculas.ListarAsync(estudianteId, programaId, pagina, ct);
+    }
+
     private async Task AsegurarEstudianteAsync(Guid estudianteId, CancellationToken ct)
     {
         if (await matriculas.ExisteEstudianteAsync(estudianteId, ct))

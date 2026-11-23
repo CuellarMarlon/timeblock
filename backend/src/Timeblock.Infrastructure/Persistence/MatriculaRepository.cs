@@ -44,4 +44,24 @@ public sealed class MatriculaRepository(TimeblockDbContext db) : IMatriculaRepos
             .Where(x => x.EstudianteId == estudianteId)
             .OrderBy(x => x.ProgramaId)
             .ToPagedResultAsync(page, ct);
+    
+    public Task<PagedResult<Matricula>> ListarAsync(Guid? estudianteId, Guid? programaId, PageRequest page, CancellationToken ct)
+    {
+        var consulta = db.Matriculas.AsNoTracking().AsQueryable();
+
+        if (estudianteId.HasValue)
+        {
+            consulta = consulta.Where(matricula => matricula.EstudianteId == estudianteId.Value);
+        }
+
+        if (programaId.HasValue)
+        {
+            consulta = consulta.Where(matricula => matricula.ProgramaId == programaId.Value);
+        }
+
+        return consulta
+            .OrderBy(matricula => matricula.EstudianteId)
+            .ThenBy(matricula => matricula.ProgramaId)
+            .ToPagedResultAsync(page, ct);
+    }
 }

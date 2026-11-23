@@ -129,6 +129,23 @@ public sealed class MatriculasServiceTests
             () => service.ListarPorProgramaAsync(Programa, page, pageSize, CancellationToken.None));
         await Assert.ThrowsAsync<InvalidRequestException>(
             () => service.ListarPorEstudianteAsync(Estudiante, page, pageSize, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidRequestException>(
+            () => service.ListarAsync(null, null, page, pageSize, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ListarGeneral_TransmiteFiltrosYPaginacion()
+    {
+        var (service, repository) = Crear();
+        Guid otroPrograma = Guid.NewGuid();
+        repository.Matriculas.Add(new Matricula(Estudiante, Programa));
+        repository.Matriculas.Add(new Matricula(Estudiante, otroPrograma));
+
+        var resultado = await service.ListarAsync(Estudiante, Programa, 1, 1, CancellationToken.None);
+
+        Assert.Equal(1, resultado.TotalItems);
+        Assert.Equal(1, resultado.PageSize);
+        Assert.Equal(Programa, Assert.Single(resultado.Items).ProgramaId);
     }
 
     [Fact]
@@ -177,6 +194,11 @@ public sealed class MatriculasServiceTests
 
         public Task<PagedResult<Matricula>> ListarPorEstudianteAsync(Guid estudianteId, PageRequest page, CancellationToken ct) =>
             Paginar(Matriculas.Where(m => m.EstudianteId == estudianteId).ToList(), page);
+
+        public Task<PagedResult<Matricula>> ListarAsync(Guid? estudianteId, Guid? programaId, PageRequest page, CancellationToken ct) =>
+            Paginar(Matriculas.Where(m => (!estudianteId.HasValue || m.EstudianteId == estudianteId)
+                && (!programaId.HasValue || m.ProgramaId == programaId))
+                .OrderBy(m => m.EstudianteId).ThenBy(m => m.ProgramaId).ToList(), page);
 
         private Task<bool> Consultar(bool resultado)
         {
