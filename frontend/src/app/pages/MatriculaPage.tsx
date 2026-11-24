@@ -1,17 +1,48 @@
-import { useCallback, useMemo, useState } from "react";
-import { listarMatriculas } from "../../api/enrollments";
-import { listarPersonas } from "../../api/persons";
-import { listarProgramas } from "../../api/program";
+import { useCallback, useRef, useState } from "react";
+import { listarMatriculas, type Matricula } from "../../api/enrollments";
+import { ApiError } from "../../api/errors";
+import { obtenerPersona } from "../../api/persons";
+import { obtenerPrograma } from "../../api/program";
+import type { PagedResult } from "../../api/types";
 import { useApiQuery } from "../../api/useApiQuery";
+import { BuscadorSelect } from "../components/BuscadorSelect";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { MatriculaForm } from "./MatriculaForm";
+import { buscarEstudiantes, buscarProgramas } from "./matriculaBusquedas";
 import "./ProgramasPage.css";
 
-/** Máximo de elementos por página admitido por la API. */
-const MAX_PAGE_SIZE = 100;
 /** Filas por página en la tabla. */
 const PAGE_SIZE = 10;
+
+/** Matrícula con los nombres ya resueltos para mostrarla en la tabla. */
+interface FilaMatricula extends Matricula {
+  estudiante: string;
+  programa: string;
+}
+
+/**
+ * Consulta por id los nombres que aún no están en la caché. Un 404 deja el
+ * nombre sin resolver; cualquier otro error hace fallar la carga de la tabla.
+ */
+async function resolverNombres(
+  ids: string[],
+  cache: Map<string, string>,
+  obtener: (id: string, signal: AbortSignal) => Promise<{ nombre: string }>,
+  signal: AbortSignal,
+) {
+  const faltan = [...new Set(ids)].filter((id) => !cache.has(id));
+  await Promise.all(
+    faltan.map(async (id) => {
+      try {
+        const registro = await obtener(id, signal);
+        cache.set(id, registro.nombre);
+      } catch (error) {
+        if (!(error instanceof ApiError && error.status === 404)) throw error;
+      }
+    }),
+  );
+}
 
 /** Módulo de matrícula: tabla filtrable por estudiante y programa, y alta en modal. */
 export function MatriculaPage() {
@@ -21,55 +52,46 @@ export function MatriculaPage() {
   const [creating, setCreating] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-
-  const loadProgramas = useCallback(
-    (signal: AbortSignal) => listarProgramas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal),
-    [],
-  );
-  const loadPersonas = useCallback(
-    (signal: AbortSignal) => listarPersonas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal),
-    [],
-  );
-  const programas = useApiQuery(loadProgramas);
-  const personas = useApiQuery(loadPersonas);
-
-  const listaProgramas = useMemo(
-    () => (programas.status === "success" ? programas.data.items : []),
-    [programas],
-  );
-  const estudiantes = useMemo(
-    () =>
-      personas.status === "success"
-        ? personas.data.items.filter((p) => p.perfil.tipo === "estudiante")
-        : [],
-    [personas],
-  );
-  const nombresProgramas = useMemo(
-    () => new Map(listaProgramas.map((p) => [p.id, p.nombre])),
-    [listaProgramas],
-  );
-  const nombresPersonas = useMemo(
-    () =>
-      new Map(
-        personas.status === "success" ? personas.data.items.map((p) => [p.id, p.nombre]) : [],
-      ),
-    [personas],
-  );
+  // Nombres ya consultados, para no repetir las peticiones al cambiar de página.
+  const nombresPersonas = useRef(new Map<string, string>());
+  const nombresProgramas = useRef(new Map<string, string>());
 
   const loadMatriculas = useCallback(
-    (signal: AbortSignal) => {
+    async (signal: AbortSignal): Promise<PagedResult<FilaMatricula>> => {
       void refreshKey;
-      return listarMatriculas(
+      const pagina = await listarMatriculas(
         { estudianteId: estudianteId || undefined, programaId: programaId || undefined },
         { page, pageSize: PAGE_SIZE },
         signal,
       );
+      const personas = nombresPersonas.current;
+      const programas = nombresProgramas.current;
+      await Promise.all([
+        resolverNombres(
+          pagina.items.map((m) => m.estudianteId),
+          personas,
+          obtenerPersona,
+          signal,
+        ),
+        resolverNombres(
+          pagina.items.map((m) => m.programaId),
+          programas,
+          obtenerPrograma,
+          signal,
+        ),
+      ]);
+      return {
+        ...pagina,
+        items: pagina.items.map((m) => ({
+          ...m,
+          estudiante: personas.get(m.estudianteId) ?? "Estudiante desconocido",
+          programa: programas.get(m.programaId) ?? "Programa desconocido",
+        })),
+      };
     },
     [estudianteId, programaId, page, refreshKey],
   );
   const matriculas = useApiQuery(loadMatriculas);
-
-  const listasListas = programas.status === "success" && personas.status === "success";
 
   function handleSaved() {
     setCreating(false);
@@ -87,7 +109,6 @@ export function MatriculaPage() {
         <button
           type="button"
           className="btn btn-primary"
-          disabled={!listasListas}
           onClick={() => {
             setNotice(null);
             setCreating(true);
@@ -98,36 +119,30 @@ export function MatriculaPage() {
       </header>
 
       <div className="filters">
-        <select
-          aria-label="Filtrar por estudiante"
+        <BuscadorSelect
+          variant="filter"
+          label="Filtrar por estudiante"
+          searchLabel="Buscar estudiante"
+          placeholder="Todos los estudiantes"
           value={estudianteId}
-          onChange={(e) => {
-            setEstudianteId(e.target.value);
+          buscar={buscarEstudiantes}
+          onChange={(id) => {
+            setEstudianteId(id);
             setPage(1);
           }}
-        >
-          <option value="">Todos los estudiantes</option>
-          {estudiantes.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.nombre}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Filtrar por programa"
+        />
+        <BuscadorSelect
+          variant="filter"
+          label="Filtrar por programa"
+          searchLabel="Buscar programa"
+          placeholder="Todos los programas"
           value={programaId}
-          onChange={(e) => {
-            setProgramaId(e.target.value);
+          buscar={buscarProgramas}
+          onChange={(id) => {
+            setProgramaId(id);
             setPage(1);
           }}
-        >
-          <option value="">Todos los programas</option>
-          {listaProgramas.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
+        />
       </div>
 
       {notice && (
@@ -156,8 +171,8 @@ export function MatriculaPage() {
                 <tbody>
                   {data.items.map((m) => (
                     <tr key={`${m.estudianteId}-${m.programaId}`}>
-                      <td>{nombresPersonas.get(m.estudianteId) ?? "Estudiante desconocido"}</td>
-                      <td>{nombresProgramas.get(m.programaId) ?? "Programa desconocido"}</td>
+                      <td>{m.estudiante}</td>
+                      <td>{m.programa}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -191,12 +206,7 @@ export function MatriculaPage() {
 
       {creating && (
         <Modal title="Nueva matrícula" onClose={() => setCreating(false)}>
-          <MatriculaForm
-            estudiantes={estudiantes}
-            programas={listaProgramas}
-            onSaved={handleSaved}
-            onCancel={() => setCreating(false)}
-          />
+          <MatriculaForm onSaved={handleSaved} onCancel={() => setCreating(false)} />
         </Modal>
       )}
     </section>

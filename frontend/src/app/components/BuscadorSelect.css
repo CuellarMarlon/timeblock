@@ -1,0 +1,30 @@
+/* Selector con búsqueda: campo de texto encima del select */
+.buscador {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.buscador input[type="search"] {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: inherit;
+  font-weight: 400;
+}
+
+.buscador input[type="search"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.buscador__estado {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.buscador--filtro {
+  min-width: 14rem;
+}
