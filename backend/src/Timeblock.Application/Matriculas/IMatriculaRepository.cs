@@ -22,6 +22,12 @@ public interface IMatriculaRepository
     /// </summary>
     Task AgregarAsync(Matricula matricula, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Elimina la matrícula de la pareja indicada.
+    /// Devuelve true si se eliminó y false si no existía.
+    /// </summary>
+    Task<bool> EliminarAsync(Guid estudianteId, Guid programaId, CancellationToken cancellationToken);
+
     Task<PagedResult<Matricula>> ListarPorProgramaAsync(
         Guid programaId, PageRequest page, CancellationToken cancellationToken);
 

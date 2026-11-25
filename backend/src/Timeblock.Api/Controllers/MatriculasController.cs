@@ -21,6 +21,16 @@ public sealed class MatriculasController(MatriculasService matriculas) : Control
         return CreatedAtAction(nameof(ListarPorPrograma), new { programaId }, created);
     }
 
+    [HttpDelete("api/programas/{programaId:guid}/matriculas/{estudianteId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Desmatricular(Guid programaId, Guid estudianteId, CancellationToken ct)
+    {
+        await matriculas.DesmatricularAsync(programaId, estudianteId, ct);
+        return NoContent();
+    }
+
     [HttpGet("api/programas/{programaId:guid}/matriculas")]
     [ProducesResponseType<PagedResult<MatriculaResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]

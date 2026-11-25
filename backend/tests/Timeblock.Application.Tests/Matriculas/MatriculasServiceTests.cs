@@ -168,6 +168,51 @@ public sealed class MatriculasServiceTests
             () => service.ListarPorEstudianteAsync(jefe, null, null, CancellationToken.None));
     }
 
+    [Fact]
+    public async Task Desmatricular_Existente_EliminaSoloLaParejaYPermiteMatricularDeNuevo()
+    {
+        var (service, repository) = Crear();
+        Guid otroPrograma = Guid.NewGuid();
+        repository.Programas.Add(otroPrograma);
+
+        await service.MatricularAsync(Programa, Estudiante, CancellationToken.None);
+        await service.MatricularAsync(otroPrograma, Estudiante, CancellationToken.None);
+
+        await service.DesmatricularAsync(Programa, Estudiante, CancellationToken.None);
+
+        Matricula restante = Assert.Single(repository.Matriculas);
+        Assert.Equal(Estudiante, restante.EstudianteId);
+        Assert.Equal(otroPrograma, restante.ProgramaId);
+
+        Assert.Contains(Estudiante, repository.Estudiantes);
+        Assert.Contains(Programa, repository.Programas);
+
+        await service.MatricularAsync(Programa, Estudiante, CancellationToken.None);
+
+        Assert.Equal(2, repository.Matriculas.Count);
+    }
+
+    [Fact]
+    public async Task Desmatricular_Inexistente_LanzaNotFound()
+    {
+        var (service, _) = Crear();
+
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() => service.DesmatricularAsync(Programa, Estudiante, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Desmatricular_IdsVacios_LanzaBadRequest()
+    {
+        var (service, repository) = Crear();
+        repository.Matriculas.Add(new Matricula(Estudiante, Programa));
+
+        await Assert.ThrowsAsync<InvalidRequestException>(() => service.DesmatricularAsync(Guid.Empty, Estudiante, CancellationToken.None));
+
+        await Assert.ThrowsAsync<InvalidRequestException>(() => service.DesmatricularAsync(Programa, Guid.Empty, CancellationToken.None));
+
+        Assert.Single(repository.Matriculas);
+    }
+
     private sealed class FakeMatriculaRepository : IMatriculaRepository
     {
         public HashSet<Guid> Personas { get; } = [];
@@ -187,6 +232,15 @@ public sealed class MatriculasServiceTests
         {
             Matriculas.Add(matricula);
             return Task.CompletedTask;
+        }
+
+        public Task<bool> EliminarAsync(Guid estudianteId, Guid programaId, CancellationToken ct)
+        {
+            int eliminadas = Matriculas.RemoveAll(m =>
+                m.EstudianteId == estudianteId &&
+                m.ProgramaId == programaId);
+
+            return Task.FromResult(eliminadas > 0);
         }
 
         public Task<PagedResult<Matricula>> ListarPorProgramaAsync(Guid programaId, PageRequest page, CancellationToken ct) =>

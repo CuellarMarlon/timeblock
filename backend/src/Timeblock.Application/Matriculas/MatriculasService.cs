@@ -23,6 +23,20 @@ public sealed class MatriculasService(IMatriculaRepository matriculas) : ICasoDe
         return matricula;
     }
 
+    public async Task DesmatricularAsync(Guid programaId, Guid estudianteId, CancellationToken ct)
+    {
+        if (programaId == Guid.Empty)
+            throw new InvalidRequestException("El identificador del programa no es válido.");
+        
+        if (estudianteId == Guid.Empty)
+            throw new InvalidRequestException("El identificador del estudiante no es válido.");
+        
+        bool eliminada =  await matriculas.EliminarAsync(estudianteId, programaId,ct);
+
+        if (!eliminada)
+            throw new ResourceNotFoundException("No existe una matrícula para ese estudiante y programa.");
+    }
+
     public async Task<PagedResult<Matricula>> ListarPorProgramaAsync(
         Guid programaId, int? page, int? pageSize, CancellationToken ct)
     {

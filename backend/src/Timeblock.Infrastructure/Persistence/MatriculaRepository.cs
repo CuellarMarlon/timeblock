@@ -33,6 +33,17 @@ public sealed class MatriculaRepository(TimeblockDbContext db) : IMatriculaRepos
         }
     }
 
+    public async Task<bool> EliminarAsync(Guid estudianteId, Guid programaId, CancellationToken ct)
+    {
+        int eliminadas = await db.Matriculas
+            .Where(matricula =>
+                matricula.EstudianteId == estudianteId &&
+                matricula.ProgramaId == programaId)
+            .ExecuteDeleteAsync(ct);
+
+        return eliminadas > 0;
+    }
+
     public Task<PagedResult<Matricula>> ListarPorProgramaAsync(Guid programaId, PageRequest page, CancellationToken ct) =>
         db.Matriculas.AsNoTracking()
             .Where(x => x.ProgramaId == programaId)

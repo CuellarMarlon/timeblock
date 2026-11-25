@@ -224,6 +224,66 @@ public sealed class MatriculasEndpointsTests(TimeblockApiFactory factory)
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
     }
 
+    [Fact]
+    public async Task Desmatricular_Existente_Responde204YEliminaSoloLaPareja()
+    {
+        MemoriaMatriculaRepository repository = RepositorioConDatos();
+        Guid otroPrograma = Guid.NewGuid();
+
+        repository.Matriculas.Add(new Matricula(Estudiante, Programa));
+        repository.Matriculas.Add(new Matricula(Estudiante, otroPrograma));
+
+        using HttpClient client = CrearCliente(repository);
+
+        using HttpResponseMessage respuesta = await client.DeleteAsync(
+            $"/api/programas/{Programa}/matriculas/{Estudiante}");
+
+        Assert.Equal(HttpStatusCode.NoContent, respuesta.StatusCode);
+
+        Matricula restante = Assert.Single(repository.Matriculas);
+        Assert.Equal(Estudiante, restante.EstudianteId);
+        Assert.Equal(otroPrograma, restante.ProgramaId);
+
+        Assert.Contains(Estudiante, repository.Estudiantes);
+        Assert.Contains(Programa, repository.Programas);
+    }
+
+    [Fact]
+    public async Task Desmatricular_Inexistente_Responde404()
+    {
+        using HttpClient client = CrearCliente(RepositorioConDatos());
+
+        using HttpResponseMessage respuesta = await client.DeleteAsync($"/api/programas/{Programa}/matriculas/{Estudiante}");
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        Assert.Equal("application/problem+json", respuesta.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task Desmatricular_IdVacio_Responde400()
+    {
+        using HttpClient client = CrearCliente(RepositorioConDatos());
+
+        using HttpResponseMessage respuesta = await client.DeleteAsync($"/api/programas/{Programa}/matriculas/{Guid.Empty}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Desmatricular_Repetida_Responde404LaSegundaVez()
+    {
+        MemoriaMatriculaRepository repository = RepositorioConDatos();
+        repository.Matriculas.Add(new Matricula(Estudiante, Programa));
+        using HttpClient client = CrearCliente(repository);
+
+        using HttpResponseMessage primera = await client.DeleteAsync($"/api/programas/{Programa}/matriculas/{Estudiante}");
+
+        using HttpResponseMessage segunda = await client.DeleteAsync($"/api/programas/{Programa}/matriculas/{Estudiante}");
+
+        Assert.Equal(HttpStatusCode.NoContent, primera.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, segunda.StatusCode);
+    }
+
     private sealed class MemoriaMatriculaRepository : IMatriculaRepository
     {
         public HashSet<Guid> Personas { get; } = [];
@@ -242,6 +302,15 @@ public sealed class MatriculasEndpointsTests(TimeblockApiFactory factory)
         {
             Matriculas.Add(matricula);
             return Task.CompletedTask;
+        }
+
+        public Task<bool> EliminarAsync(Guid estudianteId, Guid programaId, CancellationToken ct)
+        {
+            int eliminadas = Matriculas.RemoveAll(m =>
+                m.EstudianteId == estudianteId &&
+                m.ProgramaId == programaId);
+
+            return Task.FromResult(eliminadas > 0);
         }
 
         public Task<PagedResult<Matricula>> ListarPorProgramaAsync(Guid programaId, PageRequest page, CancellationToken ct) =>
