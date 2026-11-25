@@ -197,6 +197,20 @@ Para formatear los archivos reconocidos por Prettier:
 pnpm run format
 ```
 
+## Datos de demostración
+
+Con la API en marcha y la base migrada, este script carga a través de la API
+personas, programas, asignaturas, autorizaciones, matrículas, bloques y dos
+horarios de ejemplo, y comprueba que los casos inválidos se rechazan. Se puede
+ejecutar varias veces sin duplicar datos:
+
+```bash
+node scripts/demo/cargar-datos-demo.mjs
+```
+
+El guion de la demostración de M4 está en
+[`docs/demos/demo-m4.md`](docs/demos/demo-m4.md).
+
 ## Base de datos y migraciones
 
 Docker Compose inicializa PostgreSQL y ClickHouse para el desarrollo local. La
