@@ -1,13 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { listarMatriculas, matricular } from "../../api/enrollments";
-import type { Persona } from "../../api/persons";
-import type { Programa } from "../../api/program";
 import { useApiMutation } from "../../api/useApiMutation";
+import { BuscadorSelect } from "../components/BuscadorSelect";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { buscarEstudiantes, buscarProgramas } from "./matriculaBusquedas";
 
 interface MatriculaFormProps {
-  estudiantes: Persona[];
-  programas: Programa[];
   onSaved: () => void;
   onCancel: () => void;
 }
@@ -23,7 +21,7 @@ function crearMatricula({ programaId, estudianteId }: MatriculaInput) {
 }
 
 /** Formulario de nueva matrícula: avisa si el estudiante ya está en ese programa. */
-export function MatriculaForm({ estudiantes, programas, onSaved, onCancel }: MatriculaFormProps) {
+export function MatriculaForm({ onSaved, onCancel }: MatriculaFormProps) {
   const [estudianteId, setEstudianteId] = useState("");
   const [programaId, setProgramaId] = useState("");
   const [errors, setErrors] = useState<{ estudiante?: string; programa?: string }>({});
@@ -63,45 +61,31 @@ export function MatriculaForm({ estudiantes, programas, onSaved, onCancel }: Mat
 
   return (
     <form className="module-form" onSubmit={handleSubmit} noValidate>
-      <label>
-        Estudiante
-        <select
-          value={estudianteId}
-          onChange={(e) => {
-            setEstudianteId(e.target.value);
-            setDuplicada(false);
-          }}
-          aria-invalid={errors.estudiante ? true : undefined}
-        >
-          <option value="">Selecciona un estudiante</option>
-          {estudiantes.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
-      {errors.estudiante && <p className="field-error">{errors.estudiante}</p>}
+      <BuscadorSelect
+        label="Estudiante"
+        searchLabel="Buscar estudiante"
+        placeholder="Selecciona un estudiante"
+        value={estudianteId}
+        buscar={buscarEstudiantes}
+        error={errors.estudiante}
+        onChange={(id) => {
+          setEstudianteId(id);
+          setDuplicada(false);
+        }}
+      />
 
-      <label>
-        Programa académico
-        <select
-          value={programaId}
-          onChange={(e) => {
-            setProgramaId(e.target.value);
-            setDuplicada(false);
-          }}
-          aria-invalid={errors.programa ? true : undefined}
-        >
-          <option value="">Selecciona un programa</option>
-          {programas.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
-      {errors.programa && <p className="field-error">{errors.programa}</p>}
+      <BuscadorSelect
+        label="Programa académico"
+        searchLabel="Buscar programa"
+        placeholder="Selecciona un programa"
+        value={programaId}
+        buscar={buscarProgramas}
+        error={errors.programa}
+        onChange={(id) => {
+          setProgramaId(id);
+          setDuplicada(false);
+        }}
+      />
 
       {duplicada && (
         <p className="notice" role="alert">

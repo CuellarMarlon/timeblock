@@ -25,8 +25,14 @@ export interface AsignaturaInput {
   nombre: string;
 }
 
-/** Lista programas con paginación. */
-export function listarProgramas(params: PageParams, signal?: AbortSignal) {
+/** Filtros opcionales del listado de programas. */
+export interface ProgramaFiltros {
+  /** Parte del nombre, sin distinguir mayúsculas. */
+  nombre?: string;
+}
+
+/** Lista programas con paginación y filtros opcionales. */
+export function listarProgramas(params: PageParams & ProgramaFiltros, signal?: AbortSignal) {
   return apiClient.get<PagedResult<Programa>>("/api/programas", { query: { ...params }, signal });
 }
 

@@ -65,8 +65,15 @@ export interface AutorizacionUpdate {
   puedeValidar: boolean;
 }
 
-/** Lista personas con paginación. */
-export function listarPersonas(params: PageParams, signal?: AbortSignal) {
+/** Filtros opcionales del listado de personas. */
+export interface PersonaFiltros {
+  /** Parte del nombre, sin distinguir mayúsculas. */
+  nombre?: string;
+  tipoPerfil?: TipoPerfil;
+}
+
+/** Lista personas con paginación y filtros opcionales. */
+export function listarPersonas(params: PageParams & PersonaFiltros, signal?: AbortSignal) {
   return apiClient.get<PagedResult<Persona>>("/api/personas", { query: { ...params }, signal });
 }
 
