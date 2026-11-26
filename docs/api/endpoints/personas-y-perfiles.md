@@ -92,6 +92,7 @@ El identificador y el tipo de perfil no se cambian con `PUT`. Una conversión de
 | `POST /api/coordinadores/{coordinadorId}/autorizaciones` | Crea una autorización. |
 | `GET /api/coordinadores/{coordinadorId}/autorizaciones` | Lista autorizaciones; filtros opcionales por `programaId` y vigencia. |
 | `PUT /api/coordinadores/{coordinadorId}/autorizaciones/{programaId}/{fechaInicio}` | Actualiza fin de vigencia y permisos. |
+| `DELETE /api/coordinadores/{coordinadorId}/autorizaciones/{programaId}/{fechaInicio}` | Elimina una autorización que ningún horario utiliza. |
 
 Request:
 
@@ -106,6 +107,8 @@ Request:
 ```
 
 La clave lógica es coordinador + programa + fecha de inicio. `fechaFin` puede ser nula; si existe, no puede ser anterior a `fechaInicio`.
+
+Al eliminar una autorización, la API responde `204`; si no existe, `404`, y si un horario la referencia, `409`. La fecha de inicio se indica como `YYYY-MM-DD`. Eliminar la autorización no elimina al coordinador ni al programa. La protección de actualizaciones de vigencia y permisos para autorizaciones ya utilizadas sigue pendiente en la issue #66.
 
 ## Validaciones
 

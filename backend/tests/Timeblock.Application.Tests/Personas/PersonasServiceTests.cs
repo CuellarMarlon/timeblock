@@ -78,12 +78,40 @@ public sealed class PersonasServiceTests
             new PersonaFilter(null, null, 1, 101), CancellationToken.None));
     }
 
+    [Fact]
+    public async Task EliminarAutorizacion_EliminaSoloLaClaveYRechazaRepeticion()
+    {
+        var repository = new FakePersonaRepository();
+        var service = new PersonasService(repository);
+        Guid coordinador = Guid.NewGuid(), programa = Guid.NewGuid();
+        var fecha = new DateOnly(2026, 1, 1);
+        repository.Autorizaciones.Add((coordinador, programa, fecha));
+        repository.Autorizaciones.Add((coordinador, programa, fecha.AddDays(1)));
+        await service.EliminarAutorizacionAsync(coordinador, programa, fecha, CancellationToken.None);
+        Assert.DoesNotContain((coordinador, programa, fecha), repository.Autorizaciones);
+        Assert.Contains((coordinador, programa, fecha.AddDays(1)), repository.Autorizaciones);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+            service.EliminarAutorizacionAsync(coordinador, programa, fecha, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task EliminarAutorizacion_IdVacio_RechazaLaSolicitud()
+    {
+        var service = new PersonasService(new FakePersonaRepository());
+        var fecha = new DateOnly(2026, 1, 1);
+        await Assert.ThrowsAsync<InvalidRequestException>(() =>
+            service.EliminarAutorizacionAsync(Guid.Empty, Guid.NewGuid(), fecha, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidRequestException>(() =>
+            service.EliminarAutorizacionAsync(Guid.NewGuid(), Guid.Empty, fecha, CancellationToken.None));
+    }
+
     private sealed class FakePersonaRepository : IPersonaRepository
     {
         public Dictionary<Guid, Persona> Personas { get; } = [];
         public HashSet<Guid> Coordinators { get; } = [];
         public HashSet<Guid> Programs { get; } = [];
         public int CoordinatorChecks { get; private set; }
+        public HashSet<(Guid, Guid, DateOnly)> Autorizaciones { get; } = [];
 
         public Task<bool> ExisteCoordinadorAsync(Guid id, CancellationToken ct)
         {
@@ -108,5 +136,7 @@ public sealed class PersonasServiceTests
         public Task<AutorizacionCoordinador?> ObtenerAutorizacionAsync(Guid coordinatorId, Guid programId, DateOnly start, CancellationToken ct) =>
             Task.FromResult<AutorizacionCoordinador?>(null);
         public Task GuardarAutorizacionAsync(AutorizacionCoordinador authorization, CancellationToken ct) => Task.CompletedTask;
+        public Task<bool> EliminarAutorizacionAsync(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken ct) =>
+            Task.FromResult(Autorizaciones.Remove((coordinadorId, programaId, fechaInicio)));
     }
 }

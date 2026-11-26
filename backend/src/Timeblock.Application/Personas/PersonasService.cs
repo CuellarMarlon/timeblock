@@ -102,6 +102,15 @@ public sealed class PersonasService(IPersonaRepository personas)
         return autorizacion;
     }
 
+    public async Task EliminarAutorizacionAsync(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken ct)
+    {
+        if (coordinadorId == Guid.Empty || programaId == Guid.Empty)
+            throw new InvalidRequestException("Los identificadores de coordinador y programa deben ser válidos.");
+
+        if (!await personas.EliminarAutorizacionAsync(coordinadorId, programaId, fechaInicio, ct))
+            throw new ResourceNotFoundException("No existe la autorización indicada.");
+    }
+
     private async Task<PerfilEstudiante> CrearEstudianteAsync(PerfilEstudianteCrearCommand p, CancellationToken ct)
     {
         var perfil = new PerfilEstudiante(p.Edad, p.Grupo, p.CoordinadorId);

@@ -18,6 +18,30 @@ public sealed class HorariosPostgreSqlCollection;
 [Collection("Horarios PostgreSQL")]
 public sealed class HorarioRepositoryIntegrationTests
 {
+    [PostgreSqlFact]
+    public async Task EliminarAutorizacion_SinUsoElimina_ConHorarioProtegeReferencia()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        var personas = new PersonasService(new PersonaRepository(db));
+        var fechaSinUso = e.InicioAutorizacion.AddDays(-1);
+        await personas.CrearAutorizacionAsync(e.Coordinador, e.Programa.Id, fechaSinUso, null, true, false, CancellationToken.None);
+        await personas.EliminarAutorizacionAsync(e.Coordinador, e.Programa.Id, fechaSinUso, CancellationToken.None);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+            personas.EliminarAutorizacionAsync(e.Coordinador, e.Programa.Id, fechaSinUso, CancellationToken.None));
+
+        var horario = await Servicio(db).CrearAsync(Comando(e, "PRUEBA", new BloqueEnHorarioCommand(e.Teoria.Id, Fecha1)), CancellationToken.None);
+        await transaction.CreateSavepointAsync("antes_eliminar_autorizacion");
+        await Assert.ThrowsAsync<ResourceConflictException>(() =>
+            personas.EliminarAutorizacionAsync(e.Coordinador, e.Programa.Id, e.InicioAutorizacion, CancellationToken.None));
+        await transaction.RollbackToSavepointAsync("antes_eliminar_autorizacion");
+        Assert.True(await db.Autorizaciones.AsNoTracking().AnyAsync(x => x.CoordinadorId == e.Coordinador && x.ProgramaId == e.Programa.Id && x.FechaInicio == e.InicioAutorizacion));
+        Assert.True(await db.Horarios.AsNoTracking().AnyAsync(x => x.Id == horario.Horario.Id));
+        await transaction.RollbackAsync();
+    }
+
     [PostgreSqlTheory]
     [InlineData(true)]
     [InlineData(false)]

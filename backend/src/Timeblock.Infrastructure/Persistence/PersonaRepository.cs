@@ -113,6 +113,21 @@ public sealed class PersonaRepository(TimeblockDbContext db) : IPersonaRepositor
     public Task GuardarAutorizacionAsync(AutorizacionCoordinador authorization, CancellationToken ct) =>
         db.SaveChangesAsync(ct);
 
+    public async Task<bool> EliminarAutorizacionAsync(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken ct)
+    {
+        try
+        {
+            return await db.Autorizaciones.Where(x => x.CoordinadorId == coordinadorId &&
+                x.ProgramaId == programaId && x.FechaInicio == fechaInicio).ExecuteDeleteAsync(ct) > 0;
+        }
+        catch (PostgresException ex) when (
+            (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation || ex.SqlState == "23001") &&
+            ex.ConstraintName == "FK_HORARIO_COORDINADOR_EN_PROGRAMA_idCoordinadorGen_idPrograma~")
+        {
+            throw new ResourceConflictException("No se puede eliminar la autorización porque un horario la utiliza.", ex);
+        }
+    }
+
     private async Task<Persona> ToDomainAsync(PersonaRecord row, CancellationToken ct)
     {
         var rows = new PersonaPersistenceRows(

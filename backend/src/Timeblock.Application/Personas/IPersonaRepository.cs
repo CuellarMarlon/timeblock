@@ -16,4 +16,5 @@ public interface IPersonaRepository
     Task<AutorizacionCoordinador?> ObtenerAutorizacionAsync(
         Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken cancellationToken);
     Task GuardarAutorizacionAsync(AutorizacionCoordinador autorizacion, CancellationToken cancellationToken);
+    Task<bool> EliminarAutorizacionAsync(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken cancellationToken);
 }
