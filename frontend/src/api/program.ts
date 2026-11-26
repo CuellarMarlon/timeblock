@@ -51,6 +51,11 @@ export function actualizarPrograma(id: string, input: ProgramaInput) {
   return apiClient.put<Programa>(`/api/programas/${id}`, input);
 }
 
+/** Elimina un programa sin dependencias. */
+export function eliminarPrograma(id: string) {
+  return apiClient.delete<void>(`/api/programas/${id}`);
+}
+
 /** Lista asignaturas con paginación. */
 export function listarAsignaturas(params: PageParams, signal?: AbortSignal) {
   return apiClient.get<PagedResult<Asignatura>>("/api/asignaturas", {
