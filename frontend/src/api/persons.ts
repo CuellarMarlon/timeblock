@@ -31,6 +31,11 @@ export interface Persona {
   id: string;
   nombre: string;
   perfil: Perfil;
+  activo?: boolean;
+}
+
+export function cambiarEstadoPersona(id: string, activo: boolean) {
+  return apiClient.put<Persona>(`/api/personas/${id}/estado`, { activo });
 }
 
 /** Datos para crear una persona con su perfil. */

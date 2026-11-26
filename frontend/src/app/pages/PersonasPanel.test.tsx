@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   actualizarPerfil,
   actualizarPersona,
+  cambiarEstadoPersona,
   crearPersona,
   eliminarPersona,
   listarAutorizaciones,
@@ -58,6 +59,16 @@ async function guardar(user: User) {
 describe("PersonasPanel", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  it("reactiva una persona inactiva y recarga el listado", async () => {
+    listar.mockResolvedValue(pagina([{ ...jefe, activo: false }]));
+    vi.mocked(cambiarEstadoPersona).mockResolvedValue({ ...jefe, activo: true });
+    const user = userEvent.setup();
+    render(<PersonasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Reactivar María Rodríguez" }));
+    expect(cambiarEstadoPersona).toHaveBeenCalledWith("j1", true);
+    await waitFor(() => expect(listar).toHaveBeenCalledTimes(2));
   });
 
   it("permite cancelar sin eliminar", async () => {

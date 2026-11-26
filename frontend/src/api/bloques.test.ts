@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./client";
-import { desasociarBloqueDePrograma, eliminarBloque } from "./bloques";
+import { cambiarEstadoBloque, desasociarBloqueDePrograma, eliminarBloque } from "./bloques";
 
 describe("desasociarBloqueDePrograma", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -17,6 +17,16 @@ it("elimina un bloque por su identificador", async () => {
   try {
     await eliminarBloque("b1");
     expect(borrar).toHaveBeenCalledWith("/api/bloques/b1");
+  } finally {
+    vi.restoreAllMocks();
+  }
+});
+
+it("actualiza el estado de un bloque", async () => {
+  const put = vi.spyOn(apiClient, "put").mockResolvedValue({});
+  try {
+    await cambiarEstadoBloque("b1", false);
+    expect(put).toHaveBeenCalledWith("/api/bloques/b1/estado", { activo: false });
   } finally {
     vi.restoreAllMocks();
   }

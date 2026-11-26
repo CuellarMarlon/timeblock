@@ -6,12 +6,22 @@ export interface Programa {
   id: string;
   nombre: string;
   planEstudio: string;
+  activo?: boolean;
 }
 
 /** Asignatura (AsignaturaResponse del contrato). */
 export interface Asignatura {
   id: string;
   nombre: string;
+  activo?: boolean;
+}
+
+export function cambiarEstadoPrograma(id: string, activo: boolean) {
+  return apiClient.put<Programa>(`/api/programas/${id}/estado`, { activo });
+}
+
+export function cambiarEstadoAsignatura(id: string, activo: boolean) {
+  return apiClient.put<Asignatura>(`/api/asignaturas/${id}/estado`, { activo });
 }
 
 /** Datos para crear o actualizar un programa. */

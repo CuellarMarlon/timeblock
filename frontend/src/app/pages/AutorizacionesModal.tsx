@@ -41,7 +41,12 @@ export function AutorizacionesModal({ coordinador, onClose }: AutorizacionesModa
 
   const nombrePrograma = (id: string) =>
     programas.status === "success"
-      ? (programas.data.items.find((p) => p.id === id)?.nombre ?? id)
+      ? (() => {
+          const programa = programas.data.items.find((p) => p.id === id);
+          return programa
+            ? `${programa.nombre}${programa.activo === false ? " (inactivo)" : ""}`
+            : id;
+        })()
       : id;
 
   function cancelarEliminacion() {
@@ -128,6 +133,7 @@ export function AutorizacionesModal({ coordinador, onClose }: AutorizacionesModa
             <button
               type="button"
               className="btn btn-primary"
+              disabled={coordinador.activo === false}
               onClick={() => {
                 setNotice(null);
                 setEditor({});

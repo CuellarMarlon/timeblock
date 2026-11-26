@@ -1,8 +1,14 @@
 import { useCallback, useState } from "react";
-import { eliminarAsignatura, listarAsignaturas, type Asignatura } from "../../api/program";
+import {
+  cambiarEstadoAsignatura,
+  eliminarAsignatura,
+  listarAsignaturas,
+  type Asignatura,
+} from "../../api/program";
 import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { EstadoEntidad } from "../components/EstadoEntidad";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { AsignaturaForm } from "./AsignaturaForm";
@@ -99,6 +105,16 @@ export function AsignaturasPanel() {
                     <tr key={asignatura.id}>
                       <td>{asignatura.nombre}</td>
                       <td className="cell-actions">
+                        <EstadoEntidad
+                          id={asignatura.id}
+                          nombre={asignatura.nombre}
+                          activo={asignatura.activo !== false}
+                          cambiar={cambiarEstadoAsignatura}
+                          onSaved={() => {
+                            asignaturas.reload();
+                            setRefreshKey((k) => k + 1);
+                          }}
+                        />
                         <button
                           type="button"
                           className="btn-icon"

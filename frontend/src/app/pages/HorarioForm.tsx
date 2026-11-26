@@ -94,7 +94,9 @@ export function HorarioForm({ catalogos }: HorarioFormProps) {
         label="Programa"
         placeholder="Selecciona un programa"
         value={programaId}
-        options={catalogos.programas.map((p) => ({ value: p.id, label: p.nombre }))}
+        options={catalogos.programas
+          .filter((p) => p.activo !== false)
+          .map((p) => ({ value: p.id, label: p.nombre }))}
         error={errores.programaId}
         onChange={cambiarPrograma}
       />
@@ -122,7 +124,9 @@ export function HorarioForm({ catalogos }: HorarioFormProps) {
         label="Coordinador"
         placeholder="Selecciona un coordinador"
         value={coordinadorId}
-        options={catalogos.coordinadores.map((c) => ({ value: c.id, label: c.nombre }))}
+        options={catalogos.coordinadores
+          .filter((c) => c.activo !== false)
+          .map((c) => ({ value: c.id, label: c.nombre }))}
         error={errores.coordinadorId}
         onChange={setCoordinadorId}
       />
@@ -224,40 +228,42 @@ function SelectorBloques({
                 </tr>
               </thead>
               <tbody>
-                {pagina.items.map((bloque) => {
-                  const marcado = bloque.id in seleccion;
-                  const fecha = seleccion[bloque.id] ?? "";
-                  const falta = marcarFaltantes && marcado && !fecha;
-                  return (
-                    <tr key={bloque.id}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={marcado}
-                          aria-label={`Incluir ${bloque.descripcion}`}
-                          onChange={(event) => alternar(bloque.id, event.target.checked)}
-                        />
-                      </td>
-                      <td>{bloque.descripcion}</td>
-                      <td>{nombreDe(catalogos.asignaturas, bloque.asignaturaId)}</td>
-                      <td>{etiquetaTipoActividad(bloque.tipoActividad)}</td>
-                      <td>{etiquetaNivelComplejidad(bloque.nivelComplejidad)}</td>
-                      <td>
-                        <input
-                          type="date"
-                          value={fecha}
-                          disabled={!marcado}
-                          aria-label={`Fecha de ${bloque.descripcion}`}
-                          aria-invalid={falta ? true : undefined}
-                          onChange={(event) =>
-                            onChange({ ...seleccion, [bloque.id]: event.target.value })
-                          }
-                        />
-                        {falta && <p className="field-error">Falta la fecha.</p>}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {pagina.items
+                  .filter((bloque) => bloque.activo !== false)
+                  .map((bloque) => {
+                    const marcado = bloque.id in seleccion;
+                    const fecha = seleccion[bloque.id] ?? "";
+                    const falta = marcarFaltantes && marcado && !fecha;
+                    return (
+                      <tr key={bloque.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={marcado}
+                            aria-label={`Incluir ${bloque.descripcion}`}
+                            onChange={(event) => alternar(bloque.id, event.target.checked)}
+                          />
+                        </td>
+                        <td>{bloque.descripcion}</td>
+                        <td>{nombreDe(catalogos.asignaturas, bloque.asignaturaId)}</td>
+                        <td>{etiquetaTipoActividad(bloque.tipoActividad)}</td>
+                        <td>{etiquetaNivelComplejidad(bloque.nivelComplejidad)}</td>
+                        <td>
+                          <input
+                            type="date"
+                            value={fecha}
+                            disabled={!marcado}
+                            aria-label={`Fecha de ${bloque.descripcion}`}
+                            aria-invalid={falta ? true : undefined}
+                            onChange={(event) =>
+                              onChange({ ...seleccion, [bloque.id]: event.target.value })
+                            }
+                          />
+                          {falta && <p className="field-error">Falta la fecha.</p>}
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>

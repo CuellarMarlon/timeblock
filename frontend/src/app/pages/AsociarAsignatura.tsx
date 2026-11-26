@@ -143,6 +143,7 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
                     {dataProgramas.items.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.nombre}
+                        {p.activo === false ? " (inactivo)" : ""}
                       </option>
                     ))}
                   </select>
@@ -158,8 +159,9 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
                   >
                     <option value="">Selecciona una asignatura</option>
                     {dataAsignaturas.items.map((a) => (
-                      <option key={a.id} value={a.id}>
+                      <option key={a.id} value={a.id} disabled={a.activo === false}>
                         {a.nombre}
+                        {a.activo === false ? " (inactivo)" : ""}
                       </option>
                     ))}
                   </select>
@@ -169,7 +171,10 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={mutation.state.status === "loading"}
+                  disabled={
+                    mutation.state.status === "loading" ||
+                    dataProgramas.items.some((p) => p.id === programaId && p.activo === false)
+                  }
                 >
                   {mutation.state.status === "loading" ? "Asociando…" : "Asociar"}
                 </button>

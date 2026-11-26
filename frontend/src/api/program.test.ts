@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./client";
-import { desasociarAsignatura, eliminarAsignatura, eliminarPrograma } from "./program";
+import {
+  cambiarEstadoAsignatura,
+  cambiarEstadoPrograma,
+  desasociarAsignatura,
+  eliminarAsignatura,
+  eliminarPrograma,
+} from "./program";
 
 describe("desasociarAsignatura", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -29,6 +35,18 @@ it("elimina una asignatura por su identificador", async () => {
   try {
     await eliminarAsignatura("a1");
     expect(borrar).toHaveBeenCalledWith("/api/asignaturas/a1");
+  } finally {
+    vi.restoreAllMocks();
+  }
+});
+
+it("actualiza el estado de programas y asignaturas", async () => {
+  const put = vi.spyOn(apiClient, "put").mockResolvedValue({});
+  try {
+    await cambiarEstadoPrograma("p1", false);
+    await cambiarEstadoAsignatura("a1", true);
+    expect(put).toHaveBeenNthCalledWith(1, "/api/programas/p1/estado", { activo: false });
+    expect(put).toHaveBeenNthCalledWith(2, "/api/asignaturas/a1/estado", { activo: true });
   } finally {
     vi.restoreAllMocks();
   }

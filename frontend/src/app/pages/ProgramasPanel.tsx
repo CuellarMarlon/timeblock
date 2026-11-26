@@ -1,8 +1,14 @@
 import { useCallback, useState } from "react";
-import { eliminarPrograma, listarProgramas, type Programa } from "../../api/program";
+import {
+  cambiarEstadoPrograma,
+  eliminarPrograma,
+  listarProgramas,
+  type Programa,
+} from "../../api/program";
 import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { EstadoEntidad } from "../components/EstadoEntidad";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { ProgramaForm } from "./ProgramaForm";
@@ -96,6 +102,13 @@ export function ProgramasPanel() {
                       <td>{programa.nombre}</td>
                       <td>{programa.planEstudio}</td>
                       <td className="cell-actions">
+                        <EstadoEntidad
+                          id={programa.id}
+                          nombre={programa.nombre}
+                          activo={programa.activo !== false}
+                          cambiar={cambiarEstadoPrograma}
+                          onSaved={programas.reload}
+                        />
                         <button
                           type="button"
                           className="btn-icon"

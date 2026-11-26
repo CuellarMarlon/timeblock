@@ -84,8 +84,9 @@ export function AutorizacionForm({
         >
           <option value="">Selecciona un programa</option>
           {programas.map((p) => (
-            <option key={p.id} value={p.id}>
+            <option key={p.id} value={p.id} disabled={!editando && p.activo === false}>
               {p.nombre}
+              {p.activo === false ? " (inactivo)" : ""}
             </option>
           ))}
         </select>
@@ -138,7 +139,11 @@ export function AutorizacionForm({
         <button type="button" className="btn" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary" disabled={guardar.state.status === "loading"}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={guardar.state.status === "loading"}
+        >
           {guardar.state.status === "loading" ? "Guardando…" : "Guardar autorización"}
         </button>
       </div>

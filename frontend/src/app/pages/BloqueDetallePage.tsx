@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   asociarBloqueAPrograma,
   desasociarBloqueDePrograma,
+  cambiarEstadoBloque,
   eliminarBloque,
   etiquetaNivelComplejidad,
   etiquetaTipoActividad,
@@ -13,6 +14,7 @@ import { CATALOGOS_VACIOS, cargarCatalogos, nombreDe, type Catalogos } from "../
 import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { EstadoEntidad } from "../components/EstadoEntidad";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { SelectField } from "../components/SelectField";
@@ -144,6 +146,7 @@ export function BloqueDetallePage() {
             asociando={asociar.state.status === "loading"}
             onAsociar={asociarPrograma}
             onDesvincular={solicitarDesvinculacion}
+            onEstado={bloque.reload}
           />
         )}
       </QueryContent>
@@ -202,6 +205,7 @@ interface BloqueDetalleProps {
   asociando: boolean;
   onAsociar: (programaId: string) => void;
   onDesvincular: (programaId: string) => void;
+  onEstado: () => void;
 }
 
 function BloqueDetalle({
@@ -210,13 +214,26 @@ function BloqueDetalle({
   asociando,
   onAsociar,
   onDesvincular,
+  onEstado,
 }: BloqueDetalleProps) {
   const [programaId, setProgramaId] = useState("");
-  const disponibles = catalogos.programas.filter((p) => !bloque.programasIds.includes(p.id));
+  const disponibles = catalogos.programas.filter(
+    (p) => bloque.activo !== false && p.activo !== false && !bloque.programasIds.includes(p.id),
+  );
 
   return (
     <>
       <dl className="card detail-list">
+        <dt>Estado</dt>
+        <dd>
+          <EstadoEntidad
+            id={bloque.id}
+            nombre={bloque.descripcion}
+            activo={bloque.activo !== false}
+            cambiar={cambiarEstadoBloque}
+            onSaved={onEstado}
+          />
+        </dd>
         <dt>Descripción</dt>
         <dd>{bloque.descripcion}</dd>
         <dt>Asignatura</dt>
@@ -254,7 +271,9 @@ function BloqueDetalle({
           </ul>
         )}
 
-        {disponibles.length > 0 ? (
+        {bloque.activo === false ? (
+          <p>Reactiva el bloque para asociarlo a nuevos programas.</p>
+        ) : disponibles.length > 0 ? (
           <form
             className="card associate-form associate-form--simple"
             aria-label="Asociar a un programa"

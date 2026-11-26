@@ -1,8 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
-import { eliminarPersona, listarPersonas, type Persona } from "../../api/persons";
+import {
+  cambiarEstadoPersona,
+  eliminarPersona,
+  listarPersonas,
+  type Persona,
+} from "../../api/persons";
 import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { EstadoEntidad } from "../components/EstadoEntidad";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { PersonaForm } from "./PersonaForm";
@@ -127,6 +133,13 @@ export function PersonasPanel() {
                         )}
                       </td>
                       <td className="cell-actions">
+                        <EstadoEntidad
+                          id={persona.id}
+                          nombre={persona.nombre}
+                          activo={persona.activo !== false}
+                          cambiar={cambiarEstadoPersona}
+                          onSaved={personas.reload}
+                        />
                         {persona.perfil.tipo === "coordinador" && (
                           <button
                             type="button"

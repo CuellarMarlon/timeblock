@@ -134,7 +134,12 @@ export function BloqueForm({ catalogos, bloque }: BloqueFormProps) {
         label="Asignatura"
         placeholder="Selecciona una asignatura"
         value={asignaturaId}
-        options={catalogos.asignaturas.map((a) => ({ value: a.id, label: a.nombre }))}
+        options={catalogos.asignaturas
+          .filter((a) => a.activo !== false || a.id === bloque?.asignaturaId)
+          .map((a) => ({
+            value: a.id,
+            label: a.activo === false ? `${a.nombre} (inactiva)` : a.nombre,
+          }))}
         error={errores.asignaturaId}
         onChange={setAsignaturaId}
       />
@@ -166,7 +171,9 @@ export function BloqueForm({ catalogos, bloque }: BloqueFormProps) {
             label="Coordinador creador"
             placeholder="Selecciona un coordinador"
             value={coordinadorId}
-            options={catalogos.coordinadores.map((c) => ({ value: c.id, label: c.nombre }))}
+            options={catalogos.coordinadores
+              .filter((c) => c.activo !== false)
+              .map((c) => ({ value: c.id, label: c.nombre }))}
             error={errores.coordinadorId}
             onChange={setCoordinadorId}
           />
@@ -176,18 +183,20 @@ export function BloqueForm({ catalogos, bloque }: BloqueFormProps) {
               <p>No hay programas registrados.</p>
             ) : (
               <ul className="check-list">
-                {catalogos.programas.map((programa) => (
-                  <li key={programa.id}>
-                    <label className="check">
-                      <input
-                        type="checkbox"
-                        checked={programasIds.includes(programa.id)}
-                        onChange={(event) => alternarPrograma(programa.id, event.target.checked)}
-                      />
-                      {programa.nombre}
-                    </label>
-                  </li>
-                ))}
+                {catalogos.programas
+                  .filter((programa) => programa.activo !== false)
+                  .map((programa) => (
+                    <li key={programa.id}>
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={programasIds.includes(programa.id)}
+                          onChange={(event) => alternarPrograma(programa.id, event.target.checked)}
+                        />
+                        {programa.nombre}
+                      </label>
+                    </li>
+                  ))}
               </ul>
             )}
           </fieldset>

@@ -30,7 +30,7 @@ interface FilaMatricula extends Matricula {
 async function resolverNombres(
   ids: string[],
   cache: Map<string, string>,
-  obtener: (id: string, signal: AbortSignal) => Promise<{ nombre: string }>,
+  obtener: (id: string, signal: AbortSignal) => Promise<{ nombre: string; activo?: boolean }>,
   signal: AbortSignal,
 ) {
   const faltan = [...new Set(ids)].filter((id) => !cache.has(id));
@@ -38,7 +38,7 @@ async function resolverNombres(
     faltan.map(async (id) => {
       try {
         const registro = await obtener(id, signal);
-        cache.set(id, registro.nombre);
+        cache.set(id, `${registro.nombre}${registro.activo === false ? " (inactivo)" : ""}`);
       } catch (error) {
         if (!(error instanceof ApiError && error.status === 404)) throw error;
       }
@@ -52,7 +52,7 @@ export function MatriculaPage() {
   const [programaId, setProgramaId] = useState("");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
-  const [matriculaAEliminar, setMatriculaAEliminar] = useState<FilaMatricula | null>(null,);
+  const [matriculaAEliminar, setMatriculaAEliminar] = useState<FilaMatricula | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   // Nombres ya consultados, para no repetir las peticiones al cambiar de página.
@@ -259,14 +259,14 @@ export function MatriculaPage() {
       {matriculaAEliminar && (
         <Modal title="Confirmar desmatriculación" onClose={cerrarConfirmacion}>
           <p>
-            ¿Deseas desmatricular a <strong>{matriculaAEliminar.estudiante}</strong> del
-            programa <strong>{matriculaAEliminar.programa}</strong>?
+            ¿Deseas desmatricular a <strong>{matriculaAEliminar.estudiante}</strong> del programa{" "}
+            <strong>{matriculaAEliminar.programa}</strong>?
           </p>
-            
+
           <p>Esta operación elimina la matrícula y no conserva un historial de bajas.</p>
-            
+
           {baja.state.status === "error" && <ErrorMessage error={baja.state.error} />}
-            
+
           <div className="form-actions">
             <button
               type="button"
@@ -276,7 +276,7 @@ export function MatriculaPage() {
             >
               Cancelar
             </button>
-            
+
             <button
               type="button"
               className="btn btn-primary"

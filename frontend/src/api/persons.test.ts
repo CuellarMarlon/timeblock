@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiClient } from "./client";
-import { eliminarAutorizacion, eliminarPersona } from "./persons";
+import { cambiarEstadoPersona, eliminarAutorizacion, eliminarPersona } from "./persons";
 
 describe("eliminarAutorizacion", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -17,6 +17,16 @@ it("elimina una persona por su identificador", async () => {
   try {
     await eliminarPersona("p1");
     expect(borrar).toHaveBeenCalledWith("/api/personas/p1");
+  } finally {
+    vi.restoreAllMocks();
+  }
+});
+
+it("actualiza el estado de una persona", async () => {
+  const put = vi.spyOn(apiClient, "put").mockResolvedValue({});
+  try {
+    await cambiarEstadoPersona("p1", false);
+    expect(put).toHaveBeenCalledWith("/api/personas/p1/estado", { activo: false });
   } finally {
     vi.restoreAllMocks();
   }

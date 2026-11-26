@@ -33,6 +33,11 @@ export interface Bloque {
   asignaturaId: string;
   coordinadorId: string;
   programasIds: string[];
+  activo?: boolean;
+}
+
+export function cambiarEstadoBloque(id: string, activo: boolean) {
+  return apiClient.put<Bloque>(`/api/bloques/${id}/estado`, { activo });
 }
 
 export interface CrearBloque {
