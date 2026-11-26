@@ -85,3 +85,8 @@ export function listarAsignaturasDePrograma(
 export function asociarAsignatura(programaId: string, asignaturaId: string) {
   return apiClient.put<void>(`/api/programas/${programaId}/asignaturas/${asignaturaId}`);
 }
+
+/** Desvincula una asignatura de un programa. */
+export function desasociarAsignatura(programaId: string, asignaturaId: string) {
+  return apiClient.delete<void>(`/api/programas/${programaId}/asignaturas/${asignaturaId}`);
+}

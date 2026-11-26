@@ -1,6 +1,7 @@
 import { useCallback, useState, type FormEvent } from "react";
 import {
   asociarAsignatura,
+  desasociarAsignatura,
   listarAsignaturas,
   listarAsignaturasDePrograma,
   listarProgramas,
@@ -8,6 +9,7 @@ import {
 import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 
 /** Máximo de elementos por página admitido por la API. */
@@ -35,7 +37,15 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
   const [asignaturaId, setAsignaturaId] = useState("");
   const [errors, setErrors] = useState<{ programa?: string; asignatura?: string }>({});
   const [notice, setNotice] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<{
+    programaId: string;
+    programa: string;
+    asignaturaId: string;
+    asignatura: string;
+  } | null>(null);
   const mutation = useApiMutation(asociar);
+  const baja = useApiMutation(desasociarAsignatura);
+  const eliminando = baja.state.status === "loading";
 
   const loadProgramas = useCallback(
     (signal: AbortSignal) => listarProgramas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal),
@@ -59,6 +69,22 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
     [programaId],
   );
   const asociadas = useApiQuery(loadAsociadas);
+
+  function cerrarConfirmacion() {
+    if (eliminando) return;
+    setPendiente(null);
+    baja.reset();
+  }
+
+  async function confirmarDesvinculacion() {
+    if (!pendiente) return;
+    const resultado = await baja.run(pendiente.programaId, pendiente.asignaturaId);
+    if (resultado.ok) {
+      setPendiente(null);
+      setNotice("Asignatura desvinculada correctamente.");
+      asociadas.reload();
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -178,6 +204,7 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
                     <tr>
                       <th scope="col">Programa académico</th>
                       <th scope="col">Asignatura</th>
+                      <th scope="col">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -185,6 +212,25 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
                       <tr key={a.id}>
                         <td>{nombrePrograma(programaId)}</td>
                         <td>{a.nombre}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn"
+                            aria-label={`Desvincular ${a.nombre} de ${nombrePrograma(programaId)}`}
+                            onClick={() => {
+                              setNotice(null);
+                              baja.reset();
+                              setPendiente({
+                                programaId,
+                                programa: nombrePrograma(programaId),
+                                asignaturaId: a.id,
+                                asignatura: a.nombre,
+                              });
+                            }}
+                          >
+                            Desvincular
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -193,6 +239,33 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
             )
           }
         </QueryContent>
+      )}
+      {pendiente && (
+        <Modal title="Confirmar desvinculación" onClose={cerrarConfirmacion}>
+          <p>
+            ¿Deseas desvincular <strong>{pendiente.asignatura}</strong> del programa{" "}
+            <strong>{pendiente.programa}</strong>?
+          </p>
+          {baja.state.status === "error" && <ErrorMessage error={baja.state.error} />}
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={cerrarConfirmacion}
+              disabled={eliminando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarDesvinculacion}
+              disabled={eliminando}
+            >
+              {eliminando ? "Desvinculando…" : "Confirmar desvinculación"}
+            </button>
+          </div>
+        </Modal>
       )}
     </section>
   );
