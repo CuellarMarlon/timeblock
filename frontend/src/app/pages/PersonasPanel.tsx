@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
-import { listarPersonas, type Persona } from "../../api/persons";
+import { eliminarPersona, listarPersonas, type Persona } from "../../api/persons";
+import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
+import { ErrorMessage } from "../components/ErrorMessage";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { PersonaForm } from "./PersonaForm";
@@ -16,11 +18,31 @@ export function PersonasPanel() {
   const [editor, setEditor] = useState<{ persona?: Persona } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [autorizando, setAutorizando] = useState<Persona | null>(null);
+  const [pendiente, setPendiente] = useState<Persona | null>(null);
+  const eliminar = useApiMutation(eliminarPersona);
+  const eliminando = eliminar.state.status === "loading";
   const load = useCallback(
     (signal: AbortSignal) => listarPersonas({ page: 1, pageSize: MAX_PAGE_SIZE }, signal),
     [],
   );
   const personas = useApiQuery(load);
+
+  function cancelarEliminacion() {
+    if (eliminando) return;
+    setPendiente(null);
+    eliminar.reset();
+  }
+
+  async function confirmarEliminacion() {
+    if (!pendiente) return;
+    const resultado = await eliminar.run(pendiente.id);
+    if (resultado.ok) {
+      setPendiente(null);
+      setNotice("Persona eliminada correctamente.");
+      setPage(1);
+      personas.reload();
+    }
+  }
 
   const nombres = useMemo(() => {
     if (personas.status !== "success") return new Map<string, string>();
@@ -125,6 +147,18 @@ export function PersonasPanel() {
                         >
                           ✎
                         </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          aria-label={`Eliminar ${persona.nombre}`}
+                          onClick={() => {
+                            setNotice(null);
+                            eliminar.reset();
+                            setPendiente(persona);
+                          }}
+                        >
+                          Eliminar
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -173,6 +207,32 @@ export function PersonasPanel() {
       )}
       {autorizando && (
         <AutorizacionesModal coordinador={autorizando} onClose={() => setAutorizando(null)} />
+      )}
+      {pendiente && (
+        <Modal title="Confirmar eliminación" onClose={cancelarEliminacion}>
+          <p>
+            ¿Deseas eliminar a <strong>{pendiente.nombre}</strong> y su perfil?
+          </p>
+          {eliminar.state.status === "error" && <ErrorMessage error={eliminar.state.error} />}
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={cancelarEliminacion}
+              disabled={eliminando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarEliminacion}
+              disabled={eliminando}
+            >
+              {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+            </button>
+          </div>
+        </Modal>
       )}
     </section>
   );

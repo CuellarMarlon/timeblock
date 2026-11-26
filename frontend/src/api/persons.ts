@@ -82,6 +82,11 @@ export function obtenerPersona(id: string, signal?: AbortSignal) {
   return apiClient.get<Persona>(`/api/personas/${id}`, { signal });
 }
 
+/** Elimina una persona con su perfil si no tiene dependencias. */
+export function eliminarPersona(id: string) {
+  return apiClient.delete<void>(`/api/personas/${id}`);
+}
+
 /** Crea una persona con su perfil. */
 export function crearPersona(input: PersonaInput) {
   return apiClient.post<Persona>("/api/personas", input);

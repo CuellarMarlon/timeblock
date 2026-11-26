@@ -5,11 +5,13 @@ import {
   actualizarPerfil,
   actualizarPersona,
   crearPersona,
+  eliminarPersona,
   listarAutorizaciones,
   listarPersonas,
   type Persona,
 } from "../../api/persons";
 import { listarProgramas } from "../../api/program";
+import { ApiError } from "../../api/errors";
 import { PersonasPanel } from "./PersonasPanel";
 
 vi.mock("../../api/persons");
@@ -56,6 +58,53 @@ async function guardar(user: User) {
 describe("PersonasPanel", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  it("permite cancelar sin eliminar", async () => {
+    listar.mockResolvedValue(pagina([jefe]));
+    const user = userEvent.setup();
+    render(<PersonasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar María Rodríguez" }));
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(eliminarPersona).not.toHaveBeenCalled();
+  });
+
+  it("elimina una persona y recarga el listado", async () => {
+    listar.mockResolvedValue(pagina([jefe]));
+    vi.mocked(eliminarPersona).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<PersonasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar María Rodríguez" }));
+    listar.mockResolvedValue(pagina([]));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(eliminarPersona).toHaveBeenCalledWith("j1");
+    expect(await screen.findByText("Persona eliminada correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Todavía no hay personas registradas.")).toBeInTheDocument();
+  });
+
+  it("muestra el conflicto cuando tiene dependencias", async () => {
+    listar.mockResolvedValue(pagina([coordinador]));
+    vi.mocked(eliminarPersona).mockRejectedValue(
+      new ApiError(409, { detail: "La persona tiene registros relacionados." }),
+    );
+    const user = userEvent.setup();
+    render(<PersonasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Luis García" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(await screen.findByText("La persona tiene registros relacionados.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("mantiene el modal abierto mientras elimina", async () => {
+    listar.mockResolvedValue(pagina([jefe]));
+    vi.mocked(eliminarPersona).mockReturnValue(new Promise<void>(() => {}));
+    const user = userEvent.setup();
+    render(<PersonasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar María Rodríguez" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(screen.getByRole("button", { name: "Eliminando…" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("muestra la carga mientras llega el listado", () => {
