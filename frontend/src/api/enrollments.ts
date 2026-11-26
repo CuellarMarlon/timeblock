@@ -12,6 +12,13 @@ export function matricular(programaId: string, estudianteId: string) {
   return apiClient.post<Matricula>(`/api/programas/${programaId}/matriculas`, { estudianteId });
 }
 
+/** Elimina la matrícula de un estudiante en un programa. */
+export function desmatricular(programaId: string, estudianteId: string) {
+  return apiClient.delete<void>(
+    `/api/programas/${programaId}/matriculas/${estudianteId}`,
+  );
+}
+
 /** Lista las matrículas de un programa (estudiantes matriculados). */
 export function listarMatriculasDePrograma(
   programaId: string,

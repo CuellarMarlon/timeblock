@@ -200,6 +200,141 @@ describe("MatriculaPage", () => {
     expect(await screen.findByText("La matrícula ya existe.")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
+
+  it("pide confirmación y permite cancelar sin desmatricular", async () => {
+    const user = userEvent.setup();
+
+    render(<MatriculaPage />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Desmatricular a Luis de Ingeniería",
+      }),
+    );
+
+    const dialogo = screen.getByRole("dialog", {
+      name: "Confirmar desmatriculación",
+    });
+
+    expect(within(dialogo).getByText("Luis")).toBeInTheDocument();
+    expect(within(dialogo).getByText("Ingeniería")).toBeInTheDocument();
+
+    await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mEnrollments.desmatricular).not.toHaveBeenCalled();
+    expect(screen.getByRole("cell", { name: "Luis" })).toBeInTheDocument();
+  });
+
+  it("desmatricula la pareja elegida y recarga la tabla", async () => {
+    mEnrollments.desmatricular.mockResolvedValue(undefined);
+
+    const user = userEvent.setup();
+    render(<MatriculaPage />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Desmatricular a Luis de Ingeniería",
+      }),
+    );
+
+    // La siguiente carga simula que el backend ya eliminó la matrícula.
+    mEnrollments.listarMatriculas.mockResolvedValue(pagina([]));
+
+    const dialogo = screen.getByRole("dialog", {
+      name: "Confirmar desmatriculación",
+    });
+
+    await user.click(
+      within(dialogo).getByRole("button", {
+        name: "Confirmar desmatriculación",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(mEnrollments.desmatricular).toHaveBeenCalledWith("p1", "e1"),
+    );
+
+    expect(
+      await screen.findByText("Estudiante desmatriculado correctamente."),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    expect(
+      await screen.findByText("No hay matrículas para los filtros seleccionados."),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByRole("cell", { name: "Luis" })).not.toBeInTheDocument();
+  });
+
+  it("muestra el error al desmatricular y conserva el modal y la fila", async () => {
+    mEnrollments.desmatricular.mockRejectedValue(
+      new ApiError(409, { detail: "No se puede eliminar la matrícula." }),
+    );
+
+    const user = userEvent.setup();
+    render(<MatriculaPage />);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Desmatricular a Luis de Ingeniería",
+      }),
+    );
+
+    const dialogo = screen.getByRole("dialog", {
+      name: "Confirmar desmatriculación",
+    });
+
+    await user.click(
+      within(dialogo).getByRole("button", {
+        name: "Confirmar desmatriculación",
+      }),
+    );
+
+    expect(
+      await within(dialogo).findByText("No se puede eliminar la matrícula."),
+    ).toBeInTheDocument();
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Luis" })).toBeInTheDocument();
+  });
+
+  it("impide cerrar o enviar otra vez mientras se desmatricula", async () => {
+    mEnrollments.desmatricular.mockReturnValue(new Promise<void>(() => {}));
+    
+    const user = userEvent.setup();
+    render(<MatriculaPage />);
+    
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Desmatricular a Luis de Ingeniería",
+      }),
+    );
+  
+    const dialogo = screen.getByRole("dialog", {
+      name: "Confirmar desmatriculación",
+    });
+  
+    await user.click(
+      within(dialogo).getByRole("button", {
+        name: "Confirmar desmatriculación",
+      }),
+    );
+  
+    expect(
+      within(dialogo).getByRole("button", { name: "Desmatriculando…" }),
+    ).toBeDisabled();
+  
+    expect(
+      within(dialogo).getByRole("button", { name: "Cancelar" }),
+    ).toBeDisabled();
+  
+    await user.keyboard("{Escape}");
+  
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(mEnrollments.desmatricular).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("MatriculaPage con más de 100 registros", () => {

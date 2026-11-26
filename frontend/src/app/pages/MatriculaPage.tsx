@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState } from "react";
-import { listarMatriculas, type Matricula } from "../../api/enrollments";
+import { desmatricular, listarMatriculas, type Matricula } from "../../api/enrollments";
 import { ApiError } from "../../api/errors";
 import { obtenerPersona } from "../../api/persons";
 import { obtenerPrograma } from "../../api/program";
 import type { PagedResult } from "../../api/types";
+import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
 import { BuscadorSelect } from "../components/BuscadorSelect";
+import { ErrorMessage } from "../components/ErrorMessage";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { MatriculaForm } from "./MatriculaForm";
@@ -50,6 +52,7 @@ export function MatriculaPage() {
   const [programaId, setProgramaId] = useState("");
   const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
+  const [matriculaAEliminar, setMatriculaAEliminar] = useState<FilaMatricula | null>(null,);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   // Nombres ya consultados, para no repetir las peticiones al cambiar de página.
@@ -92,11 +95,44 @@ export function MatriculaPage() {
     [estudianteId, programaId, page, refreshKey],
   );
   const matriculas = useApiQuery(loadMatriculas);
+  const baja = useApiMutation(desmatricular);
+  const eliminando = baja.state.status === "loading";
 
   function handleSaved() {
     setCreating(false);
     setNotice("Estudiante matriculado correctamente.");
     setRefreshKey((k) => k + 1);
+  }
+
+  function abrirConfirmacion(matricula: FilaMatricula) {
+    setNotice(null);
+    baja.reset();
+    setMatriculaAEliminar(matricula);
+  }
+
+  function cerrarConfirmacion() {
+    if (eliminando) return;
+
+    setMatriculaAEliminar(null);
+    baja.reset();
+  }
+
+  async function confirmarDesmatriculacion() {
+    if (!matriculaAEliminar) return;
+
+    const resultado = await baja.run(
+      matriculaAEliminar.programaId,
+      matriculaAEliminar.estudianteId,
+    );
+
+    if (resultado.ok) {
+      setMatriculaAEliminar(null);
+      setNotice("Estudiante desmatriculado correctamente.");
+
+      // La última página podría desaparecer al eliminar su única fila.
+      setPage(1);
+      setRefreshKey((k) => k + 1);
+    }
   }
 
   return (
@@ -166,6 +202,7 @@ export function MatriculaPage() {
                   <tr>
                     <th scope="col">Estudiante</th>
                     <th scope="col">Programa académico</th>
+                    <th scope="col">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,6 +210,16 @@ export function MatriculaPage() {
                     <tr key={`${m.estudianteId}-${m.programaId}`}>
                       <td>{m.estudiante}</td>
                       <td>{m.programa}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn"
+                          aria-label={`Desmatricular a ${m.estudiante} de ${m.programa}`}
+                          onClick={() => abrirConfirmacion(m)}
+                        >
+                          Desmatricular
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -207,6 +254,38 @@ export function MatriculaPage() {
       {creating && (
         <Modal title="Nueva matrícula" onClose={() => setCreating(false)}>
           <MatriculaForm onSaved={handleSaved} onCancel={() => setCreating(false)} />
+        </Modal>
+      )}
+      {matriculaAEliminar && (
+        <Modal title="Confirmar desmatriculación" onClose={cerrarConfirmacion}>
+          <p>
+            ¿Deseas desmatricular a <strong>{matriculaAEliminar.estudiante}</strong> del
+            programa <strong>{matriculaAEliminar.programa}</strong>?
+          </p>
+            
+          <p>Esta operación elimina la matrícula y no conserva un historial de bajas.</p>
+            
+          {baja.state.status === "error" && <ErrorMessage error={baja.state.error} />}
+            
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={cerrarConfirmacion}
+              disabled={eliminando}
+            >
+              Cancelar
+            </button>
+            
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarDesmatriculacion}
+              disabled={eliminando}
+            >
+              {eliminando ? "Desmatriculando…" : "Confirmar desmatriculación"}
+            </button>
+          </div>
         </Modal>
       )}
     </section>
