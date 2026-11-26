@@ -21,6 +21,10 @@ public sealed class Persona
 
     public Perfil Perfil { get; private set; }
 
+    public bool Activo { get; private set; } = true;
+
+    public void CambiarEstado(bool activo) => Activo = activo;
+
     public static Persona Crear(string nombre, Perfil perfil) =>
         Crear(Guid.NewGuid(), nombre, perfil);
 

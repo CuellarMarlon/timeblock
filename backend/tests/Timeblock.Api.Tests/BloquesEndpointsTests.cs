@@ -35,6 +35,20 @@ public sealed class BloquesEndpointsTests : IClassFixture<TimeblockApiFactory>
             .CreateClient();
 
     [Fact]
+    public async Task CambiarEstado_DevuelveEstadoYConservaRelaciones()
+    {
+        BloqueContenido bloque = Sembrar(programas: [_programa]);
+        using HttpClient cliente = CrearCliente();
+        using var respuesta = await cliente.PutAsync($"/api/bloques/{bloque.Id}/estado", RespuestaExtensions.Json("""{"activo":false}"""));
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var json = await respuesta.LeerJsonAsync();
+        Assert.False(json.GetProperty("activo").GetBoolean());
+        Assert.True(bloque.EstaAsociadoAPrograma(_programa.Id));
+        using var restaurar = await cliente.PutAsync($"/api/bloques/{bloque.Id}/estado", RespuestaExtensions.Json("""{"activo":true}"""));
+        Assert.True((await restaurar.LeerJsonAsync()).GetProperty("activo").GetBoolean());
+    }
+
+    [Fact]
     public async Task EliminarBloque_SinDependencias_Responde204YLuego404()
     {
         BloqueContenido bloque = Sembrar();
@@ -156,10 +170,11 @@ public sealed class BloquesEndpointsTests : IClassFixture<TimeblockApiFactory>
         Assert.Equal(
             new[]
             {
-                "asignaturaId", "coordinadorId", "descripcion", "id",
+                "activo", "asignaturaId", "coordinadorId", "descripcion", "id",
                 "nivelComplejidad", "programasIds", "tipoActividad",
             },
             json.EnumerateObject().Select(p => p.Name).Order().ToArray());
+        Assert.True(json.GetProperty("activo").GetBoolean());
         Assert.Equal(Descripcion, json.GetProperty("descripcion").GetString());
         Assert.Equal("teoria", json.GetProperty("tipoActividad").GetString());
         Assert.Equal("medio", json.GetProperty("nivelComplejidad").GetString());

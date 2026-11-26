@@ -166,6 +166,21 @@ public sealed class CatalogoServiceTests
         await Assert.ThrowsAsync<InvalidRequestException>(() => service.EliminarAsignaturaAsync(Guid.Empty, CancellationToken.None));
     }
 
+    [Fact]
+    public async Task CambiarEstado_CatalogoInactivaYReactiva()
+    {
+        var repository = new FakeCatalogoRepository();
+        var programa = ProgramaAcademico.Crear(Guid.NewGuid(), "Programa", "Plan");
+        var asignatura = Asignatura.Crear(Guid.NewGuid(), "Asignatura");
+        repository.Programas.Add(programa.Id, programa);
+        repository.Asignaturas.Add(asignatura.Id, asignatura);
+        var service = new CatalogoService(repository);
+        Assert.False((await service.CambiarEstadoProgramaAsync(programa.Id, false, CancellationToken.None)).Activo);
+        Assert.False((await service.CambiarEstadoAsignaturaAsync(asignatura.Id, false, CancellationToken.None)).Activo);
+        Assert.True((await service.CambiarEstadoProgramaAsync(programa.Id, true, CancellationToken.None)).Activo);
+        Assert.True((await service.CambiarEstadoAsignaturaAsync(asignatura.Id, true, CancellationToken.None)).Activo);
+    }
+
     private sealed class FakeCatalogoRepository : ICatalogoRepository
     {
         public Dictionary<Guid, ProgramaAcademico> Programas { get; } = [];

@@ -167,6 +167,14 @@ public sealed class BloquesService(IBloqueRepository bloques) : ICasoDeUso
             throw new ResourceNotFoundException($"No existe el bloque '{bloqueId}'.");
     }
 
+    public async Task<BloqueContenido> CambiarEstadoAsync(Guid bloqueId, bool activo, CancellationToken ct)
+    {
+        var bloque = await ObtenerAsync(bloqueId, ct);
+        bloque.CambiarEstado(activo);
+        await bloques.GuardarCambiosAsync(ct);
+        return bloque;
+    }
+
     private async Task AsegurarAsignaturaAsync(Guid asignaturaId, CancellationToken ct)
     {
         if (!await bloques.ExisteAsignaturaAsync(asignaturaId, ct))

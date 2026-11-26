@@ -36,7 +36,8 @@ public sealed record BloqueEnHorarioResponse(
     TimeOnly? HoraInicio,
     TimeOnly? HoraFin,
     string? PeriodoImp,
-    Guid? AulaId);
+    Guid? AulaId,
+    bool BloqueActivo);
 
 public sealed record HorarioResponse(
     Guid Id,
@@ -75,7 +76,8 @@ public sealed record HorarioResponse(
                     item.Asociacion.HoraInicio,
                     item.Asociacion.HoraFin,
                     item.Asociacion.PeriodoImp,
-                    item.Asociacion.AulaId))
+                    item.Asociacion.AulaId,
+                    item.Bloque.Activo))
                 .ToArray());
     }
 }

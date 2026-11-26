@@ -15,7 +15,11 @@ Este documento contiene las convenciones que comparten los grupos de endpoints; 
 - En los listados se propone usar `page` (por defecto `1`) y `pageSize` (por defecto `20`, máximo `100`).
 - Las operaciones de creación responden `201 Created`, con el recurso creado y su URI en `Location`.
 - Consultas y actualizaciones correctas responden `200 OK`; las asociaciones `PUT` idempotentes pueden responder `204 No Content`.
-- No se definen operaciones `DELETE` de recursos principales; las reglas de baja y conservación se decidirán antes de necesitarlas.
+- Las bajas y eliminaciones de M4 se detallan en [los acuerdos de la issue #66](../revisiones/bajas-y-eliminacion-m4.md) y en los documentos de cada módulo.
+
+## Estado de registros
+
+Personas, programas, asignaturas y bloques incluyen `activo` en sus respuestas y se crean activos. Cada recurso admite `PUT /api/{recurso}/{id}/estado` con cuerpo `{"activo": false}` para inactivar o `{"activo": true}` para reactivar. Las consultas conservan los registros inactivos para permitir el acceso a sus relaciones anteriores. Las nuevas relaciones con registros inactivos se rechazan con `409`; inactivar no elimina ni modifica relaciones existentes.
 
 ## Errores
 

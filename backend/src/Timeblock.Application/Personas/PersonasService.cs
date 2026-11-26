@@ -35,6 +35,14 @@ public sealed class PersonasService(IPersonaRepository personas)
             throw new ResourceNotFoundException($"No existe la persona '{id}'.");
     }
 
+    public async Task<Persona> CambiarEstadoAsync(Guid id, bool activo, CancellationToken ct)
+    {
+        var persona = await ObtenerAsync(id, ct);
+        persona.CambiarEstado(activo);
+        await personas.GuardarCambiosAsync(persona, ct);
+        return persona;
+    }
+
     public Task<PagedResult<Persona>> ListarAsync(PersonaFilter filter, CancellationToken ct)
     {
         ValidarPaginacion(filter.Page, filter.PageSize);

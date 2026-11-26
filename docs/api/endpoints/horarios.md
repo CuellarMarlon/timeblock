@@ -62,7 +62,8 @@ Respuesta `201 Created`:
       "horaInicio": null,
       "horaFin": null,
       "periodoImp": null,
-      "aulaId": null
+      "aulaId": null,
+      "bloqueActivo": true
     },
     {
       "bloqueId": "660e8400-e29b-41d4-a716-446655440000",
@@ -74,7 +75,8 @@ Respuesta `201 Created`:
       "horaInicio": null,
       "horaFin": null,
       "periodoImp": null,
-      "aulaId": null
+      "aulaId": null,
+      "bloqueActivo": true
     }
   ]
 }
@@ -88,6 +90,7 @@ Respuesta `201 Created`:
 - Todos los bloques deben existir y estar asociados al programa indicado. Un mismo bloque no puede repetirse para la misma fecha dentro del horario; puede programarse en fechas diferentes.
 - En M4, `horaInicio`, `horaFin`, `periodoImp` y `aulaId` quedan nulos. Cuando se complete una impartición, los cuatro campos serán obligatorios y deberá cumplirse `horaInicio < horaFin`.
 - `cantTotalBloques` se calcula contando los bloques distintos asociados al horario; si un mismo bloque aparece en varias fechas, cuenta una sola vez.
+- `bloqueActivo` muestra el estado actual del bloque sin eliminarlo de horarios anteriores.
 - La fecha de creación la determina el servidor en UTC.
 - El estado lo establece el servidor como `GENERADO`. En M4 significa que el horario está constituido; no indica si se creó manualmente o mediante el algoritmo. El cliente no envía el estado.
 - La creación del horario y sus asociaciones debe ser atómica: si un bloque no es válido, no debe quedar un horario parcialmente creado.

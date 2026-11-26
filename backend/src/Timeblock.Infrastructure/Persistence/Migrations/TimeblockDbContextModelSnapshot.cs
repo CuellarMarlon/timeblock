@@ -28,6 +28,12 @@ namespace Timeblock.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("idBloque");
 
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("activo");
+
                     b.Property<Guid>("AsignaturaId")
                         .HasColumnType("uuid")
                         .HasColumnName("idAsignatura");
@@ -97,6 +103,12 @@ namespace Timeblock.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("idAsignatura");
 
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("activo");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasColumnType("text")
@@ -112,6 +124,12 @@ namespace Timeblock.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")
                         .HasColumnName("idPrograma");
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("activo");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
@@ -467,6 +485,12 @@ namespace Timeblock.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("IdPersona")
                         .HasColumnType("uuid")
                         .HasColumnName("idPersona");
+
+                    b.Property<bool>("Activo")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("activo");
 
                     b.Property<string>("NombrePersona")
                         .IsRequired()

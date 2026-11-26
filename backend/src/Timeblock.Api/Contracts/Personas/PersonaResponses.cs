@@ -11,7 +11,7 @@ namespace Timeblock.Api.Contracts.Personas;
 [JsonDerivedType(typeof(PerfilJefeDepartamentoResponse), "jefeDepartamento")]
 public abstract record PerfilResponse;
 
-public sealed record PersonaResponse(Guid Id, string Nombre, PerfilResponse Perfil)
+public sealed record PersonaResponse(Guid Id, string Nombre, PerfilResponse Perfil, bool Activo)
 {
     public static PersonaResponse FromDomain(Persona persona) => new(
         persona.Id,
@@ -22,7 +22,7 @@ public sealed record PersonaResponse(Guid Id, string Nombre, PerfilResponse Perf
             PerfilCoordinador p => new PerfilCoordinadorResponse(p.Especialidad),
             PerfilJefeDepartamento => new PerfilJefeDepartamentoResponse(),
             _ => throw new InvalidOperationException("Perfil no soportado.")
-        });
+        }, persona.Activo);
 }
 
 public sealed record PerfilEstudianteResponse(int Edad, string Grupo, Guid CoordinadorId) : PerfilResponse;

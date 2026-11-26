@@ -118,6 +118,18 @@ public sealed class PersonasServiceTests
         await Assert.ThrowsAsync<InvalidRequestException>(() => service.EliminarAsync(Guid.Empty, CancellationToken.None));
     }
 
+    [Fact]
+    public async Task CambiarEstado_InactivaYReactivaPersona()
+    {
+        var repository = new FakePersonaRepository();
+        var persona = Persona.Crear(Guid.NewGuid(), "Jefe", new PerfilJefeDepartamento());
+        repository.Personas.Add(persona.Id, persona);
+        var service = new PersonasService(repository);
+        Assert.False((await service.CambiarEstadoAsync(persona.Id, false, CancellationToken.None)).Activo);
+        Assert.True((await service.CambiarEstadoAsync(persona.Id, true, CancellationToken.None)).Activo);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() => service.CambiarEstadoAsync(Guid.NewGuid(), false, CancellationToken.None));
+    }
+
     private sealed class FakePersonaRepository : IPersonaRepository
     {
         public Dictionary<Guid, Persona> Personas { get; } = [];

@@ -42,6 +42,22 @@ public sealed class CatalogoService(ICatalogoRepository catalogo) : ICasoDeUso
             throw new ResourceNotFoundException($"No existe el programa '{programaId}'.");
     }
 
+    public async Task<ProgramaAcademico> CambiarEstadoProgramaAsync(Guid id, bool activo, CancellationToken ct)
+    {
+        var programa = await ObtenerProgramaAsync(id, ct);
+        programa.CambiarEstado(activo);
+        await catalogo.GuardarProgramaAsync(ct);
+        return programa;
+    }
+
+    public async Task<Asignatura> CambiarEstadoAsignaturaAsync(Guid id, bool activo, CancellationToken ct)
+    {
+        var asignatura = await ObtenerAsignaturaAsync(id, ct);
+        asignatura.CambiarEstado(activo);
+        await catalogo.GuardarAsignaturaAsync(ct);
+        return asignatura;
+    }
+
     public async Task<PagedResult<Asignatura>> ListarAsignaturasDeProgramaAsync(
         Guid programaId, int? page, int? pageSize, CancellationToken cancellationToken)
     {

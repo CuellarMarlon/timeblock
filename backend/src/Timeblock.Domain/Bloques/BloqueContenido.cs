@@ -19,6 +19,10 @@ public sealed class BloqueContenido
 
     public Guid Id { get; private set; }
 
+    public bool Activo { get; private set; } = true;
+
+    public void CambiarEstado(bool activo) => Activo = activo;
+
     /// <summary>Descripción sin espacios sobrantes; conserva mayúsculas y acentos.</summary>
     public string Descripcion { get; private set; }
 

@@ -37,7 +37,8 @@ public sealed record BloqueResponse(
     NivelComplejidad NivelComplejidad,
     Guid AsignaturaId,
     Guid CoordinadorId,
-    IReadOnlyList<Guid> ProgramasIds)
+    IReadOnlyList<Guid> ProgramasIds,
+    bool Activo)
 {
     public static BloqueResponse FromDomain(BloqueContenido bloque)
     {
@@ -53,6 +54,7 @@ public sealed record BloqueResponse(
             bloque.Programas
                 .Select(asociacion => asociacion.ProgramaId)
                 .Order()
-                .ToArray());
+                .ToArray(),
+            bloque.Activo);
     }
 }

@@ -12,6 +12,10 @@ public sealed class ProgramaAcademico
 
     public string PlanEstudio { get; private set; }
 
+    public bool Activo { get; private set; } = true;
+
+    public void CambiarEstado(bool activo) => Activo = activo;
+
     public IReadOnlyCollection<ProgramaAsignatura> Asignaturas => _asignaturas.AsReadOnly();
 
     private ProgramaAcademico(Guid id, string nombre, string planEstudio)

@@ -60,6 +60,7 @@ public sealed class PersonaRepository(TimeblockDbContext db) : IPersonaRepositor
         PersonaRecord? row = await db.Personas.SingleOrDefaultAsync(x => x.IdPersona == persona.Id, ct);
         if (row is null) throw new ResourceNotFoundException($"No existe la persona '{persona.Id}'.");
         row.NombrePersona = persona.Nombre;
+        row.Activo = persona.Activo;
 
         switch (persona.Perfil)
         {

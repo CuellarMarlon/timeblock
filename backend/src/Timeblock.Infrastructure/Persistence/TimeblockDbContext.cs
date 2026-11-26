@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Timeblock.Application.Common.Exceptions;
 using Timeblock.Domain.Bloques;
 using Timeblock.Domain.Catalogo;
 using Timeblock.Domain.Horarios;
@@ -32,7 +34,9 @@ public sealed class TimeblockDbContext(
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         EnsureReferencedDates();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        try { return base.SaveChanges(acceptAllChangesOnSuccess); }
+        catch (DbUpdateException ex) when (EsRegistroInactivo(ex))
+        { throw new ResourceConflictException("No se puede usar un registro inactivo para esta operación.", ex); }
     }
 
     public override async Task<int> SaveChangesAsync(
@@ -40,10 +44,14 @@ public sealed class TimeblockDbContext(
         CancellationToken cancellationToken = default)
     {
         await EnsureReferencedDatesAsync(cancellationToken);
-        return await base.SaveChangesAsync(
-            acceptAllChangesOnSuccess,
-            cancellationToken);
+        try { return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken); }
+        catch (DbUpdateException ex) when (EsRegistroInactivo(ex))
+        { throw new ResourceConflictException("No se puede usar un registro inactivo para esta operación.", ex); }
     }
+
+    private static bool EsRegistroInactivo(DbUpdateException ex) =>
+        ex.InnerException is PostgresException error && error.SqlState == PostgresErrorCodes.CheckViolation &&
+        error.MessageText.StartsWith("REGISTRO_INACTIVO:", StringComparison.Ordinal);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

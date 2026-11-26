@@ -45,6 +45,12 @@ public sealed class PersonasController(PersonasService personas) : ControllerBas
     public async Task<ActionResult<PersonaResponse>> Obtener(Guid personaId, CancellationToken ct) =>
         Ok(PersonaResponse.FromDomain(await personas.ObtenerAsync(personaId, ct)));
 
+    [HttpPut("{personaId:guid}/estado")]
+    [ProducesResponseType<PersonaResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PersonaResponse>> CambiarEstado(Guid personaId, ActualizarEstadoRequest request, CancellationToken ct) =>
+        Ok(PersonaResponse.FromDomain(await personas.CambiarEstadoAsync(personaId, request.Activo, ct)));
+
     [HttpDelete("{personaId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]

@@ -50,6 +50,12 @@ public sealed class ProgramasController(CatalogoService catalogo) : ControllerBa
         Ok(ProgramaResponse.FromDomain(await catalogo.ActualizarProgramaAsync(
             programaId, request.Nombre, request.PlanEstudio, ct)));
 
+    [HttpPut("{programaId:guid}/estado")]
+    [ProducesResponseType<ProgramaResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ProgramaResponse>> CambiarEstado(Guid programaId, ActualizarEstadoRequest request, CancellationToken ct) =>
+        Ok(ProgramaResponse.FromDomain(await catalogo.CambiarEstadoProgramaAsync(programaId, request.Activo, ct)));
+
     [HttpDelete("{programaId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]

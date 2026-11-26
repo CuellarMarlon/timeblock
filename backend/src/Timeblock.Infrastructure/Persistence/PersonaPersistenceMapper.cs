@@ -24,7 +24,8 @@ public static class PersonaPersistenceMapper
         var personaRecord = new PersonaRecord
         {
             IdPersona = persona.Id,
-            NombrePersona = persona.Nombre
+            NombrePersona = persona.Nombre,
+            Activo = persona.Activo
         };
 
         return persona.Perfil switch
@@ -94,6 +95,8 @@ public static class PersonaPersistenceMapper
                 ? new PerfilCoordinador(coordinador.Especialidad)
                 : new PerfilJefeDepartamento();
 
-        return Persona.Crear(rows.Persona.IdPersona, rows.Persona.NombrePersona, perfil);
+        Persona persona = Persona.Crear(rows.Persona.IdPersona, rows.Persona.NombrePersona, perfil);
+        persona.CambiarEstado(rows.Persona.Activo);
+        return persona;
     }
 }
