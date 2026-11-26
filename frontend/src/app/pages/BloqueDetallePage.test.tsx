@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   obtenerBloque: vi.fn(),
   asociarBloqueAPrograma: vi.fn(),
   desasociarBloqueDePrograma: vi.fn(),
+  eliminarBloque: vi.fn(),
 }));
 
 vi.mock("../../api/catalogos", async (importOriginal) => ({
@@ -21,6 +22,7 @@ vi.mock("../../api/bloques", async (importOriginal) => ({
   obtenerBloque: mocks.obtenerBloque,
   asociarBloqueAPrograma: mocks.asociarBloqueAPrograma,
   desasociarBloqueDePrograma: mocks.desasociarBloqueDePrograma,
+  eliminarBloque: mocks.eliminarBloque,
 }));
 
 const catalogos = {
@@ -47,6 +49,7 @@ function renderPagina(aviso?: string) {
     <MemoryRouter initialEntries={[{ pathname: "/bloques/b1", state: aviso ? { aviso } : null }]}>
       <Routes>
         <Route path="/bloques/:bloqueId" element={<BloqueDetallePage />} />
+        <Route path="/bloques" element={<p>Lista de bloques</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -125,6 +128,47 @@ describe("BloqueDetallePage", () => {
     renderPagina();
 
     expect(await screen.findByText("El bloque no existe.")).toBeInTheDocument();
+  });
+
+  it("cancela la eliminación sin llamar a la API", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await user.click(await screen.findByRole("button", { name: "Eliminar bloque" }));
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(mocks.eliminarBloque).not.toHaveBeenCalled();
+  });
+
+  it("elimina un bloque y vuelve al listado", async () => {
+    const user = userEvent.setup();
+    mocks.eliminarBloque.mockResolvedValue(undefined);
+    renderPagina();
+    await user.click(await screen.findByRole("button", { name: "Eliminar bloque" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(mocks.eliminarBloque).toHaveBeenCalledWith("b1");
+    expect(await screen.findByText("Lista de bloques")).toBeInTheDocument();
+  });
+
+  it("muestra el conflicto si hay dependencias", async () => {
+    const user = userEvent.setup();
+    mocks.eliminarBloque.mockRejectedValue(
+      new ApiError(409, { detail: "El bloque tiene registros relacionados." }),
+    );
+    renderPagina();
+    await user.click(await screen.findByRole("button", { name: "Eliminar bloque" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(await screen.findByText("El bloque tiene registros relacionados.")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("impide cerrar mientras se elimina", async () => {
+    const user = userEvent.setup();
+    mocks.eliminarBloque.mockReturnValue(new Promise<void>(() => {}));
+    renderPagina();
+    await user.click(await screen.findByRole("button", { name: "Eliminar bloque" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(screen.getByRole("button", { name: "Eliminando…" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("muestra el programa y permite cancelar sin desvincular", async () => {

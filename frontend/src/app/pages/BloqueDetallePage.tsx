@@ -1,8 +1,9 @@
 import { useCallback, useId, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   asociarBloqueAPrograma,
   desasociarBloqueDePrograma,
+  eliminarBloque,
   etiquetaNivelComplejidad,
   etiquetaTipoActividad,
   obtenerBloque,
@@ -24,6 +25,7 @@ export function BloqueDetallePage() {
   const headingId = useId();
   const { bloqueId = "" } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   // Aviso que manda el formulario después de crear o editar el bloque
   const avisoInicial = (location.state as { aviso?: string } | null)?.aviso;
 
@@ -37,10 +39,24 @@ export function BloqueDetallePage() {
   // se vuelve a montar y se perdería el aviso de éxito
   const asociar = useApiMutation(asociarBloqueAPrograma);
   const desvincular = useApiMutation(desasociarBloqueDePrograma);
+  const eliminar = useApiMutation(eliminarBloque);
+  const [confirmarBloque, setConfirmarBloque] = useState(false);
   const [asociado, setAsociado] = useState<string | null>(null);
   const [desvinculado, setDesvinculado] = useState<string | null>(null);
   const [pendiente, setPendiente] = useState<{ id: string; nombre: string } | null>(null);
   const desvinculando = desvincular.state.status === "loading";
+  const eliminando = eliminar.state.status === "loading";
+
+  function cerrarEliminar() {
+    if (eliminando) return;
+    setConfirmarBloque(false);
+    eliminar.reset();
+  }
+
+  async function confirmarEliminar() {
+    const resultado = await eliminar.run(bloqueId);
+    if (resultado.ok) navigate("/bloques", { state: { aviso: "Bloque eliminado correctamente." } });
+  }
 
   async function asociarPrograma(programaId: string) {
     setAsociado(null);
@@ -90,6 +106,18 @@ export function BloqueDetallePage() {
           <Link className="btn btn-primary" to={`/bloques/${bloqueId}/editar`}>
             Editar
           </Link>
+          {bloque.status === "success" && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                eliminar.reset();
+                setConfirmarBloque(true);
+              }}
+            >
+              Eliminar bloque
+            </button>
+          )}
         </div>
       </header>
 
@@ -141,6 +169,25 @@ export function BloqueDetallePage() {
               disabled={desvinculando}
             >
               {desvinculando ? "Desvinculando…" : "Confirmar desvinculación"}
+            </button>
+          </div>
+        </Modal>
+      )}
+      {confirmarBloque && (
+        <Modal title="Eliminar bloque" onClose={cerrarEliminar}>
+          <p>¿Deseas eliminar este bloque? Solo es posible si no tiene registros relacionados.</p>
+          {eliminar.state.status === "error" && <ErrorMessage error={eliminar.state.error} />}
+          <div className="form-actions">
+            <button type="button" className="btn" onClick={cerrarEliminar} disabled={eliminando}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarEliminar}
+              disabled={eliminando}
+            >
+              {eliminando ? "Eliminando…" : "Confirmar eliminación"}
             </button>
           </div>
         </Modal>

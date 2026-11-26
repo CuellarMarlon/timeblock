@@ -91,3 +91,7 @@ export function asociarBloqueAPrograma(bloqueId: string, programaId: string): Pr
 export function desasociarBloqueDePrograma(bloqueId: string, programaId: string): Promise<void> {
   return apiClient.delete<void>(`/api/bloques/${bloqueId}/programas/${programaId}`);
 }
+
+export function eliminarBloque(bloqueId: string): Promise<void> {
+  return apiClient.delete<void>(`/api/bloques/${bloqueId}`);
+}

@@ -1,5 +1,5 @@
 import { useCallback, useId, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   etiquetaNivelComplejidad,
   etiquetaTipoActividad,
@@ -14,6 +14,7 @@ import { ErrorMessage } from "../components/ErrorMessage";
 import { FilterSelect } from "../components/FilterSelect";
 import { Pagination } from "../components/Pagination";
 import { QueryContent } from "../components/QueryContent";
+import { SuccessMessage } from "../components/SuccessMessage";
 import "./BloquesHorarios.css";
 import "./ProgramasPage.css";
 
@@ -23,6 +24,7 @@ const PAGE_SIZE = 20;
 // coordinador, tipo de actividad y complejidad
 export function BloquesPage() {
   const headingId = useId();
+  const aviso = (useLocation().state as { aviso?: string } | null)?.aviso;
   const [filtros, setFiltros] = useState<FiltrosBloques>({});
   const [page, setPage] = useState(1);
 
@@ -52,6 +54,8 @@ export function BloquesPage() {
           + Nuevo bloque
         </Link>
       </header>
+
+      {aviso && <SuccessMessage message={aviso} />}
 
       {catalogosQuery.status === "error" && (
         <ErrorMessage error={catalogosQuery.error} onRetry={catalogosQuery.reload} />
