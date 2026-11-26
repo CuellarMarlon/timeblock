@@ -41,6 +41,7 @@ Respuesta `201 Created`:
 | `GET /api/asignaturas/{asignaturaId}` | Consulta una asignatura. |
 | `PUT /api/asignaturas/{asignaturaId}` | Actualiza el nombre. |
 | `PUT /api/programas/{programaId}/asignaturas/{asignaturaId}` | Asocia la asignatura al programa; idempotente. |
+| `DELETE /api/programas/{programaId}/asignaturas/{asignaturaId}` | Desvincula una asignatura de un programa. |
 
 Crear asignatura:
 
@@ -72,4 +73,6 @@ Respuesta para una asociación creada o ya existente: `204 No Content`.
 - `404`: programa o asignatura inexistente.
 - `409`: duplicidad según restricciones del modelo de datos.
 
-M4 no define eliminación de programas, asignaturas ni asociaciones, porque el diseño no especifica el efecto sobre matrículas, bloques u horarios ya creados.
+Se puede desvincular una asignatura de un programa si no hay bloques de esa asignatura asociados al programa (RII03). La operación conserva el programa y la asignatura y responde `204`. Si la relación no existe, responde `404`; si hay bloques que impiden retirarla, responde `409`. Un UUID vacío responde `400`; un identificador con formato inválido no coincide con la ruta y responde `404`.
+
+Las demás operaciones de baja y eliminación se implementan progresivamente según los acuerdos de la issue #66.

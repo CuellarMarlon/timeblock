@@ -1,11 +1,54 @@
 using Microsoft.EntityFrameworkCore;
 using Timeblock.Application.Catalogo;
+using Timeblock.Application.Common.Exceptions;
+using Timeblock.Application.Personas;
+using Timeblock.Domain.Bloques;
+using Timeblock.Domain.Personas;
 using Timeblock.Infrastructure.Persistence;
 
 namespace Timeblock.Infrastructure.Tests;
 
 public sealed class CatalogoRepositoryIntegrationTests
 {
+    [PostgreSqlFact]
+    public async Task DesasociarAsignatura_RespetaBloquesDelPrograma()
+    {
+        var options = new DbContextOptionsBuilder<TimeblockDbContext>()
+            .UseNpgsql(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION")!).Options;
+        await using var db = new TimeblockDbContext(options);
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var ct = CancellationToken.None;
+        var catalogo = new CatalogoService(new CatalogoRepository(db));
+        var personas = new PersonasService(new PersonaRepository(db));
+        var programa = await catalogo.CrearProgramaAsync($"Programa {Guid.NewGuid()}", "Plan", ct);
+        var asignatura = await catalogo.CrearAsignaturaAsync($"Asignatura {Guid.NewGuid()}", ct);
+        await catalogo.AsociarAsignaturaAsync(programa.Id, asignatura.Id, ct);
+
+        await catalogo.DesasociarAsignaturaAsync(programa.Id, asignatura.Id, ct);
+        Assert.False(await db.ProgramasAsignaturas.AsNoTracking().AnyAsync(x => x.ProgramaId == programa.Id && x.AsignaturaId == asignatura.Id, ct));
+        Assert.True(await db.Programas.AsNoTracking().AnyAsync(x => x.Id == programa.Id, ct));
+        Assert.True(await db.Asignaturas.AsNoTracking().AnyAsync(x => x.Id == asignatura.Id, ct));
+
+        db.ChangeTracker.Clear();
+        await catalogo.AsociarAsignaturaAsync(programa.Id, asignatura.Id, ct);
+        Persona coordinador = await personas.CrearAsync(new CrearPersonaCommand("Coordinador prueba", new PerfilCoordinadorCrearCommand("Informática")), ct);
+        var bloque = BloqueContenido.Crear("Bloque prueba", TipoActividad.Teoria, NivelComplejidad.Medio, asignatura.Id, coordinador.Id);
+        bloque.AsociarPrograma(programa);
+        db.Bloques.Add(bloque);
+        await db.SaveChangesAsync(ct);
+        await transaction.CreateSavepointAsync("antes_conflicto", ct);
+
+        await Assert.ThrowsAsync<ResourceConflictException>(() =>
+            catalogo.DesasociarAsignaturaAsync(programa.Id, asignatura.Id, ct));
+        await transaction.RollbackToSavepointAsync("antes_conflicto", ct);
+
+        Assert.True(await db.ProgramasAsignaturas.AsNoTracking().AnyAsync(
+            x => x.ProgramaId == programa.Id && x.AsignaturaId == asignatura.Id, ct));
+        Assert.True(await db.Bloques.AsNoTracking().AnyAsync(x => x.Id == bloque.Id, ct));
+        await transaction.RollbackAsync(ct);
+    }
+
     [PostgreSqlFact]
     public async Task Catalogo_PersisteFiltraActualizaYAsociaDeFormaIdempotente()
     {

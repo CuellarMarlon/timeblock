@@ -87,6 +87,24 @@ public sealed class CatalogoRepository(TimeblockDbContext db) : ICatalogoReposit
         }
     }
 
+    public async Task<bool> DesasociarAsync(Guid programaId, Guid asignaturaId, CancellationToken ct)
+    {
+        try
+        {
+            int eliminadas = await db.ProgramasAsignaturas
+                .Where(x => x.ProgramaId == programaId && x.AsignaturaId == asignaturaId)
+                .ExecuteDeleteAsync(ct);
+            return eliminadas > 0;
+        }
+        catch (PostgresException ex) when (
+            ex.SqlState == PostgresErrorCodes.CheckViolation &&
+            ex.MessageText.StartsWith("RII03:", StringComparison.Ordinal))
+        {
+            throw new ResourceConflictException(
+                "No se puede quitar la asignatura del programa mientras tenga bloques asociados.", ex);
+        }
+    }
+
     public async Task<PagedResult<Asignatura>> ListarAsignaturasDeProgramaAsync(
         Guid programaId, PageRequest page, CancellationToken ct)
     {

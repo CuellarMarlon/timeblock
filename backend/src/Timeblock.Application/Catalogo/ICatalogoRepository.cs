@@ -21,6 +21,7 @@ public interface ICatalogoRepository
     Task<bool> ExisteAsignaturaAsync(Guid asignaturaId, CancellationToken cancellationToken);
     Task<bool> EstaAsociadaAsync(Guid programaId, Guid asignaturaId, CancellationToken cancellationToken);
     Task AsociarAsync(Guid programaId, Guid asignaturaId, CancellationToken cancellationToken);
+    Task<bool> DesasociarAsync(Guid programaId, Guid asignaturaId, CancellationToken cancellationToken);
     Task<PagedResult<Asignatura>> ListarAsignaturasDeProgramaAsync(
         Guid programaId, PageRequest page, CancellationToken cancellationToken);
 }

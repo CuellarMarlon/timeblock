@@ -108,6 +108,38 @@ public sealed class CatalogoServiceTests
             service.ListarProgramasAsync(null, 1, 101, CancellationToken.None));
     }
 
+    [Fact]
+    public async Task DesasociarAsignatura_EliminaSoloLaRelacionYRechazaRepeticion()
+    {
+        var repository = new FakeCatalogoRepository();
+        Guid programa = Guid.NewGuid(), asignatura = Guid.NewGuid(), otra = Guid.NewGuid();
+        repository.Asociaciones.Add((programa, asignatura));
+        repository.Asociaciones.Add((programa, otra));
+        var service = new CatalogoService(repository);
+
+        await service.DesasociarAsignaturaAsync(programa, asignatura, CancellationToken.None);
+
+        Assert.DoesNotContain((programa, asignatura), repository.Asociaciones);
+        Assert.Contains((programa, otra), repository.Asociaciones);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+            service.DesasociarAsignaturaAsync(programa, asignatura, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task DesasociarAsignatura_IdsVacios_NoModificaRelaciones()
+    {
+        var repository = new FakeCatalogoRepository();
+        Guid programa = Guid.NewGuid(), asignatura = Guid.NewGuid();
+        repository.Asociaciones.Add((programa, asignatura));
+        var service = new CatalogoService(repository);
+
+        await Assert.ThrowsAsync<InvalidRequestException>(() =>
+            service.DesasociarAsignaturaAsync(Guid.Empty, asignatura, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidRequestException>(() =>
+            service.DesasociarAsignaturaAsync(programa, Guid.Empty, CancellationToken.None));
+        Assert.Contains((programa, asignatura), repository.Asociaciones);
+    }
+
     private sealed class FakeCatalogoRepository : ICatalogoRepository
     {
         public Dictionary<Guid, ProgramaAcademico> Programas { get; } = [];
@@ -151,6 +183,9 @@ public sealed class CatalogoServiceTests
             Asociaciones.Add((programId, subjectId));
             return Task.CompletedTask;
         }
+
+        public Task<bool> DesasociarAsync(Guid programId, Guid subjectId, CancellationToken ct) =>
+            Task.FromResult(Asociaciones.Remove((programId, subjectId)));
 
         public Task<PagedResult<Asignatura>> ListarAsignaturasDeProgramaAsync(Guid programId, PageRequest page, CancellationToken ct)
         {

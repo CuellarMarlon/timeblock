@@ -82,6 +82,15 @@ public sealed class CatalogoService(ICatalogoRepository catalogo) : ICasoDeUso
         await catalogo.AsociarAsync(programaId, asignaturaId, cancellationToken);
     }
 
+    public async Task DesasociarAsignaturaAsync(Guid programaId, Guid asignaturaId, CancellationToken cancellationToken)
+    {
+        if (programaId == Guid.Empty || asignaturaId == Guid.Empty)
+            throw new InvalidRequestException("Los identificadores de programa y asignatura deben ser válidos.");
+
+        if (!await catalogo.DesasociarAsync(programaId, asignaturaId, cancellationToken))
+            throw new ResourceNotFoundException("No existe una asociación entre ese programa y esa asignatura.");
+    }
+
     private static PageRequest CrearPagina(int? page, int? pageSize)
     {
         try { return PageRequest.Create(page, pageSize); }
