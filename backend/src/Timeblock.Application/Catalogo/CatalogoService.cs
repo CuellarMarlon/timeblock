@@ -34,6 +34,14 @@ public sealed class CatalogoService(ICatalogoRepository catalogo) : ICasoDeUso
         return programa;
     }
 
+    public async Task EliminarProgramaAsync(Guid programaId, CancellationToken cancellationToken)
+    {
+        if (programaId == Guid.Empty)
+            throw new InvalidRequestException("El identificador del programa no es válido.");
+        if (!await catalogo.EliminarProgramaAsync(programaId, cancellationToken))
+            throw new ResourceNotFoundException($"No existe el programa '{programaId}'.");
+    }
+
     public async Task<PagedResult<Asignatura>> ListarAsignaturasDeProgramaAsync(
         Guid programaId, int? page, int? pageSize, CancellationToken cancellationToken)
     {

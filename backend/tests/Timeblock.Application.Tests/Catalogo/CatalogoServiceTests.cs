@@ -140,6 +140,19 @@ public sealed class CatalogoServiceTests
         Assert.Contains((programa, asignatura), repository.Asociaciones);
     }
 
+    [Fact]
+    public async Task EliminarPrograma_ExistenteLoQuitaYRepetidoLanzaNotFound()
+    {
+        var repository = new FakeCatalogoRepository();
+        var programa = ProgramaAcademico.Crear(Guid.NewGuid(), "Programa", "Plan");
+        repository.Programas.Add(programa.Id, programa);
+        var service = new CatalogoService(repository);
+        await service.EliminarProgramaAsync(programa.Id, CancellationToken.None);
+        Assert.Empty(repository.Programas);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() => service.EliminarProgramaAsync(programa.Id, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidRequestException>(() => service.EliminarProgramaAsync(Guid.Empty, CancellationToken.None));
+    }
+
     private sealed class FakeCatalogoRepository : ICatalogoRepository
     {
         public Dictionary<Guid, ProgramaAcademico> Programas { get; } = [];
@@ -159,6 +172,7 @@ public sealed class CatalogoServiceTests
             Task.FromResult(Paginate(Programas.Values.Where(x => Matches(x.Nombre, nombre)), page));
 
         public Task GuardarProgramaAsync(CancellationToken ct) => Task.CompletedTask;
+        public Task<bool> EliminarProgramaAsync(Guid id, CancellationToken ct) => Task.FromResult(Programas.Remove(id));
 
         public Task AgregarAsignaturaAsync(Asignatura asignatura, CancellationToken ct)
         {

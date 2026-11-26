@@ -32,6 +32,18 @@ public sealed class CatalogoRepository(TimeblockDbContext db) : ICatalogoReposit
 
     public Task GuardarProgramaAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
 
+    public async Task<bool> EliminarProgramaAsync(Guid programaId, CancellationToken ct)
+    {
+        try
+        {
+            return await db.Programas.Where(p => p.Id == programaId).ExecuteDeleteAsync(ct) > 0;
+        }
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.ForeignKeyViolation or "23001")
+        {
+            throw new ResourceConflictException("No se puede eliminar el programa porque tiene registros relacionados.", ex);
+        }
+    }
+
     public async Task AgregarAsignaturaAsync(Asignatura asignatura, CancellationToken ct)
     {
         db.Asignaturas.Add(asignatura);

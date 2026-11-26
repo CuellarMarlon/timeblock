@@ -40,13 +40,29 @@ public sealed class DesasociarAsignaturaEndpointsTests(TimeblockApiFactory facto
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
     }
 
+    [Theory]
+    [InlineData("existe", HttpStatusCode.NoContent)]
+    [InlineData("ausente", HttpStatusCode.NotFound)]
+    [InlineData("conflicto", HttpStatusCode.Conflict)]
+    public async Task EliminarPrograma_RespondeSegunResultado(string escenario, HttpStatusCode esperado)
+    {
+        ICatalogoRepository repo = DispatchProxy.Create<ICatalogoRepository, CatalogoProxy>();
+        ((CatalogoProxy)repo).Escenario = escenario;
+        using var app = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.Replace(ServiceDescriptor.Scoped<ICatalogoRepository>(_ => repo))));
+        using HttpClient client = app.CreateClient();
+        using var respuesta = await client.DeleteAsync($"/api/programas/{Guid.NewGuid()}");
+        Assert.Equal(esperado, respuesta.StatusCode);
+    }
+
     public class CatalogoProxy : DispatchProxy
     {
         public string Escenario { get; set; } = "";
 
         protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
         {
-            if (targetMethod?.Name != nameof(ICatalogoRepository.DesasociarAsync))
+            if (targetMethod?.Name != nameof(ICatalogoRepository.DesasociarAsync) &&
+                targetMethod?.Name != nameof(ICatalogoRepository.EliminarProgramaAsync))
                 throw new NotSupportedException();
             return Escenario switch
             {
