@@ -34,6 +34,36 @@ public sealed class BloquesEndpointsTests : IClassFixture<TimeblockApiFactory>
                 services.Replace(ServiceDescriptor.Scoped<IBloqueRepository>(_ => _repositorio))))
             .CreateClient();
 
+    [Fact]
+    public async Task DesasociarPrograma_ExistenteYRepetida_Responde204Y404()
+    {
+        BloqueContenido bloque = Sembrar(programas: [_programa]);
+        using HttpClient client = CrearCliente();
+        using var primera = await client.DeleteAsync($"/api/bloques/{bloque.Id}/programas/{_programa.Id}");
+        using var segunda = await client.DeleteAsync($"/api/bloques/{bloque.Id}/programas/{_programa.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, primera.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, segunda.StatusCode);
+    }
+
+    [Fact]
+    public async Task DesasociarPrograma_EnHorario_Responde409()
+    {
+        BloqueContenido bloque = Sembrar(programas: [_programa]);
+        _repositorio.RelacionesEnHorarios.Add((bloque.Id, _programa.Id));
+        using HttpClient client = CrearCliente();
+        using var respuesta = await client.DeleteAsync($"/api/bloques/{bloque.Id}/programas/{_programa.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        Assert.True(bloque.EstaAsociadoAPrograma(_programa.Id));
+    }
+
+    [Fact]
+    public async Task DesasociarPrograma_IdVacio_Responde400()
+    {
+        using HttpClient client = CrearCliente();
+        using var respuesta = await client.DeleteAsync($"/api/bloques/{Guid.Empty}/programas/{_programa.Id}");
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
     private string CuerpoCrear(
         string descripcion = Descripcion,
         string tipoActividad = "teoria",

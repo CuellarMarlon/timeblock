@@ -34,4 +34,5 @@ public interface IBloqueRepository
 
   
     Task GuardarCambiosAsync(CancellationToken cancellationToken);
+    Task<bool> DesasociarProgramaAsync(Guid bloqueId, Guid programaId, CancellationToken cancellationToken);
 }

@@ -155,6 +155,9 @@ public sealed class BloqueContenido
     public bool EstaAsociadoAPrograma(Guid programaId) =>
         _programas.Any(asociacion => asociacion.ProgramaId == programaId);
 
+    public bool DesasociarPrograma(Guid programaId) =>
+        _programas.RemoveAll(asociacion => asociacion.ProgramaId == programaId) > 0;
+
     /// <summary>
     /// Un bloque puede utilizarse en un programa cuando está asociado a él,
     /// con independencia de qué coordinador lo creó.

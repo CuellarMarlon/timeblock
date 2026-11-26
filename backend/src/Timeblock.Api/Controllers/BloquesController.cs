@@ -83,4 +83,14 @@ public sealed class BloquesController(BloquesService bloques) : ControllerBase
         await bloques.AsociarProgramaAsync(bloqueId, programaId, ct);
         return NoContent();
     }
+    [HttpDelete("{bloqueId:guid}/programas/{programaId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DesasociarPrograma(Guid bloqueId, Guid programaId, CancellationToken ct)
+    {
+        await bloques.DesasociarProgramaAsync(bloqueId, programaId, ct);
+        return NoContent();
+    }
 }

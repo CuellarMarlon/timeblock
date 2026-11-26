@@ -14,6 +14,7 @@ Un bloque contiene una descripción, una asignatura, el coordinador creador, un 
 | `GET /api/bloques/{bloqueId}` | Consulta bloque y programas asociados. |
 | `PUT /api/bloques/{bloqueId}` | Actualiza descripción, actividad, complejidad o asignatura. |
 | `PUT /api/bloques/{bloqueId}/programas/{programaId}` | Asocia el bloque con un programa; idempotente. |
+| `DELETE /api/bloques/{bloqueId}/programas/{programaId}` | Desvincula el bloque de un programa si ningún horario de ese programa lo utiliza. |
 
 Crear bloque:
 
@@ -66,6 +67,7 @@ La normalización y la restricción de unicidad deben aplicarse en el dominio/pe
 ## Notas de implementación
 
 - `PUT /api/bloques/{bloqueId}/programas/{programaId}` responde `204 No Content`, también cuando la asociación ya existía. Repetirla no crea duplicados ni produce error.
+- `DELETE /api/bloques/{bloqueId}/programas/{programaId}` responde `204` al desvincular, `404` si la relación no existe y `409` si un horario del programa utiliza el bloque. No elimina el bloque ni el programa. UUID vacíos responden `400`.
 - `PUT /api/bloques/{bloqueId}` acepta cualquiera de `descripcion`, `tipoActividad`, `nivelComplejidad` y `asignaturaId`. Los datos que no se envíen se conservan y debe enviarse al menos uno. Cambiar la asignatura exige que todos los programas asociados al bloque la incluyan (RII03).
 - `GET /api/bloques` usa la paginación común (`page`, `pageSize`) y ordena por descripción normalizada. Los filtros informados se combinan con "y". Un `programaId` sin bloques devuelve una página vacía.
 - La asignatura se valida antes que los programas, y estos antes que la duplicidad.
