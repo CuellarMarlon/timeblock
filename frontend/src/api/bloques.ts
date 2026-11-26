@@ -87,3 +87,7 @@ export function actualizarBloque(id: string, cambios: ActualizarBloque): Promise
 export function asociarBloqueAPrograma(bloqueId: string, programaId: string): Promise<void> {
   return apiClient.put<void>(`/api/bloques/${bloqueId}/programas/${programaId}`);
 }
+
+export function desasociarBloqueDePrograma(bloqueId: string, programaId: string): Promise<void> {
+  return apiClient.delete<void>(`/api/bloques/${bloqueId}/programas/${programaId}`);
+}

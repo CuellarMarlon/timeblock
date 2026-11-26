@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ApiError } from "../../api/errors";
@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   cargarCatalogos: vi.fn(),
   obtenerBloque: vi.fn(),
   asociarBloqueAPrograma: vi.fn(),
+  desasociarBloqueDePrograma: vi.fn(),
 }));
 
 vi.mock("../../api/catalogos", async (importOriginal) => ({
@@ -19,6 +20,7 @@ vi.mock("../../api/bloques", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/bloques")>()),
   obtenerBloque: mocks.obtenerBloque,
   asociarBloqueAPrograma: mocks.asociarBloqueAPrograma,
+  desasociarBloqueDePrograma: mocks.desasociarBloqueDePrograma,
 }));
 
 const catalogos = {
@@ -123,5 +125,74 @@ describe("BloqueDetallePage", () => {
     renderPagina();
 
     expect(await screen.findByText("El bloque no existe.")).toBeInTheDocument();
+  });
+
+  it("muestra el programa y permite cancelar sin desvincular", async () => {
+    const user = userEvent.setup();
+    renderPagina();
+    await user.click(
+      await screen.findByRole("button", { name: "Desvincular de Ingeniería Informática" }),
+    );
+    const dialogo = screen.getByRole("dialog", { name: "Confirmar desvinculación" });
+    expect(within(dialogo).getByText("Ingeniería Informática")).toBeInTheDocument();
+    await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mocks.desasociarBloqueDePrograma).not.toHaveBeenCalled();
+  });
+
+  it("desvincula el programa elegido y recarga el bloque", async () => {
+    const user = userEvent.setup();
+    mocks.desasociarBloqueDePrograma.mockResolvedValue(undefined);
+    mocks.obtenerBloque
+      .mockResolvedValueOnce(bloque)
+      .mockResolvedValue({ ...bloque, programasIds: [] });
+    renderPagina();
+    await user.click(
+      await screen.findByRole("button", { name: "Desvincular de Ingeniería Informática" }),
+    );
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", { name: "Confirmar desvinculación" }),
+    );
+    expect(mocks.desasociarBloqueDePrograma).toHaveBeenCalledWith("b1", "p1");
+    expect(
+      await screen.findByText("Bloque desvinculado del programa «Ingeniería Informática»."),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Este bloque todavía no está asociado a ningún programa."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("muestra el conflicto y conserva el programa asociado", async () => {
+    const user = userEvent.setup();
+    mocks.desasociarBloqueDePrograma.mockRejectedValue(
+      new ApiError(409, { detail: "El bloque pertenece a un horario." }),
+    );
+    renderPagina();
+    await user.click(
+      await screen.findByRole("button", { name: "Desvincular de Ingeniería Informática" }),
+    );
+    const dialogo = screen.getByRole("dialog");
+    await user.click(within(dialogo).getByRole("button", { name: "Confirmar desvinculación" }));
+    expect(
+      await within(dialogo).findByText("El bloque pertenece a un horario."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("listitem")).toHaveTextContent("Ingeniería Informática");
+  });
+
+  it("mantiene el modal abierto durante la petición", async () => {
+    const user = userEvent.setup();
+    mocks.desasociarBloqueDePrograma.mockReturnValue(new Promise<void>(() => {}));
+    renderPagina();
+    await user.click(
+      await screen.findByRole("button", { name: "Desvincular de Ingeniería Informática" }),
+    );
+    const dialogo = screen.getByRole("dialog");
+    await user.click(within(dialogo).getByRole("button", { name: "Confirmar desvinculación" }));
+    expect(within(dialogo).getByRole("button", { name: "Desvinculando…" })).toBeDisabled();
+    expect(within(dialogo).getByRole("button", { name: "Cancelar" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(mocks.desasociarBloqueDePrograma).toHaveBeenCalledTimes(1);
   });
 });

@@ -2,6 +2,7 @@ import { useCallback, useId, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import {
   asociarBloqueAPrograma,
+  desasociarBloqueDePrograma,
   etiquetaNivelComplejidad,
   etiquetaTipoActividad,
   obtenerBloque,
@@ -11,6 +12,7 @@ import { CATALOGOS_VACIOS, cargarCatalogos, nombreDe, type Catalogos } from "../
 import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { SelectField } from "../components/SelectField";
 import { SuccessMessage } from "../components/SuccessMessage";
@@ -34,13 +36,42 @@ export function BloqueDetallePage() {
   // La mutación se queda aquí y no en el detalle: al recargar el bloque el detalle
   // se vuelve a montar y se perdería el aviso de éxito
   const asociar = useApiMutation(asociarBloqueAPrograma);
+  const desvincular = useApiMutation(desasociarBloqueDePrograma);
   const [asociado, setAsociado] = useState<string | null>(null);
+  const [desvinculado, setDesvinculado] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<{ id: string; nombre: string } | null>(null);
+  const desvinculando = desvincular.state.status === "loading";
 
   async function asociarPrograma(programaId: string) {
     setAsociado(null);
+    setDesvinculado(null);
     const resultado = await asociar.run(bloqueId, programaId);
     if (resultado.ok) {
       setAsociado(nombreDe(catalogos.programas, programaId));
+      bloque.reload();
+    }
+  }
+
+  function solicitarDesvinculacion(programaId: string) {
+    setAsociado(null);
+    setDesvinculado(null);
+    asociar.reset();
+    desvincular.reset();
+    setPendiente({ id: programaId, nombre: nombreDe(catalogos.programas, programaId) });
+  }
+
+  function cerrarConfirmacion() {
+    if (desvinculando) return;
+    setPendiente(null);
+    desvincular.reset();
+  }
+
+  async function confirmarDesvinculacion() {
+    if (!pendiente) return;
+    const resultado = await desvincular.run(bloqueId, pendiente.id);
+    if (resultado.ok) {
+      setDesvinculado(pendiente.nombre);
+      setPendiente(null);
       bloque.reload();
     }
   }
@@ -64,6 +95,9 @@ export function BloqueDetallePage() {
 
       {avisoInicial && <SuccessMessage message={avisoInicial} />}
       {asociado && <SuccessMessage message={`Bloque asociado al programa «${asociado}».`} />}
+      {desvinculado && (
+        <SuccessMessage message={`Bloque desvinculado del programa «${desvinculado}».`} />
+      )}
       {asociar.state.status === "error" && <ErrorMessage error={asociar.state.error} />}
       {catalogosQuery.status === "error" && (
         <ErrorMessage error={catalogosQuery.error} onRetry={catalogosQuery.reload} />
@@ -81,9 +115,36 @@ export function BloqueDetallePage() {
             catalogos={catalogos}
             asociando={asociar.state.status === "loading"}
             onAsociar={asociarPrograma}
+            onDesvincular={solicitarDesvinculacion}
           />
         )}
       </QueryContent>
+      {pendiente && (
+        <Modal title="Confirmar desvinculación" onClose={cerrarConfirmacion}>
+          <p>
+            ¿Deseas desvincular este bloque del programa <strong>{pendiente.nombre}</strong>?
+          </p>
+          {desvincular.state.status === "error" && <ErrorMessage error={desvincular.state.error} />}
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={cerrarConfirmacion}
+              disabled={desvinculando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarDesvinculacion}
+              disabled={desvinculando}
+            >
+              {desvinculando ? "Desvinculando…" : "Confirmar desvinculación"}
+            </button>
+          </div>
+        </Modal>
+      )}
     </section>
   );
 }
@@ -93,9 +154,16 @@ interface BloqueDetalleProps {
   catalogos: Catalogos;
   asociando: boolean;
   onAsociar: (programaId: string) => void;
+  onDesvincular: (programaId: string) => void;
 }
 
-function BloqueDetalle({ bloque, catalogos, asociando, onAsociar }: BloqueDetalleProps) {
+function BloqueDetalle({
+  bloque,
+  catalogos,
+  asociando,
+  onAsociar,
+  onDesvincular,
+}: BloqueDetalleProps) {
   const [programaId, setProgramaId] = useState("");
   const disponibles = catalogos.programas.filter((p) => !bloque.programasIds.includes(p.id));
 
@@ -126,6 +194,14 @@ function BloqueDetalle({ bloque, catalogos, asociando, onAsociar }: BloqueDetall
                 <span className="badge badge--coordinador">
                   {nombreDe(catalogos.programas, id)}
                 </span>
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={`Desvincular de ${nombreDe(catalogos.programas, id)}`}
+                  onClick={() => onDesvincular(id)}
+                >
+                  Desvincular
+                </button>
               </li>
             ))}
           </ul>
