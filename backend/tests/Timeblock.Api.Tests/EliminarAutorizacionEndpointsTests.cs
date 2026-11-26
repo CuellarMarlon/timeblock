@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Timeblock.Api.Tests.Support;
 using Timeblock.Application.Common.Exceptions;
 using Timeblock.Application.Personas;
+using Timeblock.Domain.Personas;
 
 namespace Timeblock.Api.Tests;
 
@@ -38,11 +39,35 @@ public sealed class EliminarAutorizacionEndpointsTests(TimeblockApiFactory facto
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
     }
 
+    [Fact]
+    public async Task Actualizar_SiInvalidaHorarios_Responde409()
+    {
+        IPersonaRepository repo = DispatchProxy.Create<IPersonaRepository, PersonaProxy>();
+        ((PersonaProxy)repo).Escenario = "actualizar-conflicto";
+        using var app = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.Replace(ServiceDescriptor.Scoped<IPersonaRepository>(_ => repo))));
+        using var client = app.CreateClient();
+        using var respuesta = await client.PutAsync(
+            $"/api/coordinadores/{Guid.NewGuid()}/autorizaciones/{Guid.NewGuid()}/2026-01-01",
+            RespuestaExtensions.Json("""{"fechaFin":null,"puedeGenerar":false,"puedeValidar":false}"""));
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        Assert.Equal("application/problem+json", respuesta.Content.Headers.ContentType?.MediaType);
+    }
+
     public class PersonaProxy : DispatchProxy
     {
         public string Escenario { get; set; } = "";
-        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args) =>
-            targetMethod?.Name == nameof(IPersonaRepository.EliminarAutorizacionAsync)
+        protected override object? Invoke(MethodInfo? targetMethod, object?[]? args)
+        {
+            if (Escenario == "actualizar-conflicto")
+            {
+                if (targetMethod?.Name == nameof(IPersonaRepository.ObtenerAutorizacionAsync))
+                    return Task.FromResult<AutorizacionCoordinador?>(new AutorizacionCoordinador(
+                        (Guid)args![0]!, (Guid)args[1]!, (DateOnly)args[2]!, null, true, false));
+                if (targetMethod?.Name == nameof(IPersonaRepository.GuardarAutorizacionAsync))
+                    return Task.FromException(new ResourceConflictException("Cambio inválido."));
+            }
+            return targetMethod?.Name == nameof(IPersonaRepository.EliminarAutorizacionAsync)
                 ? Escenario switch
                 {
                     "existe" => Task.FromResult(true),
@@ -51,5 +76,6 @@ public sealed class EliminarAutorizacionEndpointsTests(TimeblockApiFactory facto
                     _ => throw new InvalidOperationException(),
                 }
                 : throw new NotSupportedException();
+        }
     }
 }

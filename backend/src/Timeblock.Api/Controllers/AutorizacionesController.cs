@@ -37,6 +37,7 @@ public sealed class AutorizacionesController(PersonasService personas) : Control
     [ProducesResponseType<AutorizacionResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AutorizacionResponse>> Actualizar(
         Guid coordinadorId, Guid programaId, DateOnly fechaInicio,
         ActualizarAutorizacionRequest request, CancellationToken ct)

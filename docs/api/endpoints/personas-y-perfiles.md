@@ -108,7 +108,9 @@ Request:
 
 La clave lógica es coordinador + programa + fecha de inicio. `fechaFin` puede ser nula; si existe, no puede ser anterior a `fechaInicio`.
 
-Al eliminar una autorización, la API responde `204`; si no existe, `404`, y si un horario la referencia, `409`. La fecha de inicio se indica como `YYYY-MM-DD`. Eliminar la autorización no elimina al coordinador ni al programa. La protección de actualizaciones de vigencia y permisos para autorizaciones ya utilizadas sigue pendiente en la issue #66.
+Al eliminar una autorización, la API responde `204`; si no existe, `404`, y si un horario la referencia, `409`. La fecha de inicio se indica como `YYYY-MM-DD`. Eliminar la autorización no elimina al coordinador ni al programa.
+
+Una autorización usada por un horario puede cerrarse con una fecha que incluya la creación de todos los horarios que la utilizan. No se puede desactivar `puedeGenerar` ni establecer una fecha de fin que invalide cualquiera de esos horarios: la actualización responde `409`. La creación y la actualización se protegen frente a operaciones concurrentes. El permiso `puedeValidar` sigue siendo editable; en M4 aún no existen validaciones de horarios ni historial de cambios de permisos.
 
 ## Validaciones
 

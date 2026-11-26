@@ -110,8 +110,16 @@ public sealed class PersonaRepository(TimeblockDbContext db) : IPersonaRepositor
         db.Autorizaciones.SingleOrDefaultAsync(x => x.CoordinadorId == coordinatorId &&
             x.ProgramaId == programId && x.FechaInicio == start, ct);
 
-    public Task GuardarAutorizacionAsync(AutorizacionCoordinador authorization, CancellationToken ct) =>
-        db.SaveChangesAsync(ct);
+    public async Task GuardarAutorizacionAsync(AutorizacionCoordinador authorization, CancellationToken ct)
+    {
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException error &&
+            error.SqlState == PostgresErrorCodes.CheckViolation &&
+            error.MessageText.StartsWith("AUTORIZACION_HORARIO:", StringComparison.Ordinal))
+        {
+            throw new ResourceConflictException("El cambio invalidaría horarios que utilizan esta autorización.", ex);
+        }
+    }
 
     public async Task<bool> EliminarAutorizacionAsync(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken ct)
     {
