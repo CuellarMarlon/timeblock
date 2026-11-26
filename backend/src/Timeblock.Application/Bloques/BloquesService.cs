@@ -160,6 +160,13 @@ public sealed class BloquesService(IBloqueRepository bloques) : ICasoDeUso
             throw new ResourceNotFoundException("No existe una asociación entre ese bloque y ese programa.");
     }
 
+    public async Task EliminarAsync(Guid bloqueId, CancellationToken ct)
+    {
+        ValidarId(bloqueId, "bloqueId");
+        if (!await bloques.EliminarAsync(bloqueId, ct))
+            throw new ResourceNotFoundException($"No existe el bloque '{bloqueId}'.");
+    }
+
     private async Task AsegurarAsignaturaAsync(Guid asignaturaId, CancellationToken ct)
     {
         if (!await bloques.ExisteAsignaturaAsync(asignaturaId, ct))

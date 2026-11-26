@@ -104,6 +104,18 @@ public sealed class BloqueRepository(TimeblockDbContext db) : IBloqueRepository
     public Task GuardarCambiosAsync(CancellationToken ct) =>
         GuardarTraduciendoConflictosAsync(ct);
 
+    public async Task<bool> EliminarAsync(Guid bloqueId, CancellationToken ct)
+    {
+        try
+        {
+            return await db.Bloques.Where(b => b.Id == bloqueId).ExecuteDeleteAsync(ct) > 0;
+        }
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.ForeignKeyViolation or "23001")
+        {
+            throw new ResourceConflictException("No se puede eliminar el bloque porque tiene registros relacionados.", ex);
+        }
+    }
+
     public async Task<bool> DesasociarProgramaAsync(Guid bloqueId, Guid programaId, CancellationToken ct)
     {
         try

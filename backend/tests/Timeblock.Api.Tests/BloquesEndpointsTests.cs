@@ -35,6 +35,27 @@ public sealed class BloquesEndpointsTests : IClassFixture<TimeblockApiFactory>
             .CreateClient();
 
     [Fact]
+    public async Task EliminarBloque_SinDependencias_Responde204YLuego404()
+    {
+        BloqueContenido bloque = Sembrar();
+        using HttpClient client = CrearCliente();
+        using var primera = await client.DeleteAsync($"/api/bloques/{bloque.Id}");
+        using var segunda = await client.DeleteAsync($"/api/bloques/{bloque.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, primera.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, segunda.StatusCode);
+    }
+
+    [Fact]
+    public async Task EliminarBloque_ConPrograma_Responde409()
+    {
+        BloqueContenido bloque = Sembrar(programas: [_programa]);
+        using HttpClient client = CrearCliente();
+        using var respuesta = await client.DeleteAsync($"/api/bloques/{bloque.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        Assert.Contains(bloque, _repositorio.Bloques);
+    }
+
+    [Fact]
     public async Task DesasociarPrograma_ExistenteYRepetida_Responde204Y404()
     {
         BloqueContenido bloque = Sembrar(programas: [_programa]);

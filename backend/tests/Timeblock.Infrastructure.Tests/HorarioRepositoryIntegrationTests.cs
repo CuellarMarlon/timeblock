@@ -18,6 +18,26 @@ public sealed class HorariosPostgreSqlCollection;
 [Collection("Horarios PostgreSQL")]
 public sealed class HorarioRepositoryIntegrationTests
 {
+    [PostgreSqlFact]
+    public async Task EliminarBloque_SinDependenciasElimina_ConProgramaRechaza()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        var repo = new BloqueRepository(db);
+        var libre = BloqueContenido.Crear($"Libre {Guid.NewGuid()}", TipoActividad.Teoria,
+            NivelComplejidad.Bajo, e.Asignatura, e.Coordinador);
+        await repo.AgregarAsync(libre, CancellationToken.None);
+        Assert.True(await repo.EliminarAsync(libre.Id, CancellationToken.None));
+        Assert.False(await repo.EliminarAsync(libre.Id, CancellationToken.None));
+        await transaction.CreateSavepointAsync("antes_eliminar_bloque");
+        await Assert.ThrowsAsync<ResourceConflictException>(() => repo.EliminarAsync(e.Teoria.Id, CancellationToken.None));
+        await transaction.RollbackToSavepointAsync("antes_eliminar_bloque");
+        Assert.True(await db.Bloques.AsNoTracking().AnyAsync(b => b.Id == e.Teoria.Id));
+        await transaction.RollbackAsync();
+    }
+
     [PostgreSqlTheory]
     [InlineData(true)]
     [InlineData(false)]

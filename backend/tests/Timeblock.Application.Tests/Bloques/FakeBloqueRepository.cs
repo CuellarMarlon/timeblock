@@ -166,4 +166,13 @@ public sealed class FakeBloqueRepository : IBloqueRepository
             throw new ResourceConflictException("El bloque pertenece a un horario del programa.");
         return Task.FromResult(Bloques.FirstOrDefault(bloque => bloque.Id == bloqueId)?.DesasociarPrograma(programaId) ?? false);
     }
+
+    public Task<bool> EliminarAsync(Guid bloqueId, CancellationToken ct)
+    {
+        var bloque = Bloques.FirstOrDefault(x => x.Id == bloqueId);
+        if (bloque is null) return Task.FromResult(false);
+        if (bloque.Programas.Count > 0 || RelacionesEnHorarios.Any(x => x.BloqueId == bloqueId))
+            throw new ResourceConflictException("El bloque tiene registros relacionados.");
+        return Task.FromResult(Bloques.Remove(bloque));
+    }
 }
