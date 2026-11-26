@@ -121,3 +121,14 @@ export function actualizarAutorizacion(
     input,
   );
 }
+
+/** Elimina una autorización identificada por coordinador, programa y fecha de inicio. */
+export function eliminarAutorizacion(
+  coordinadorId: string,
+  programaId: string,
+  fechaInicio: string,
+) {
+  return apiClient.delete<void>(
+    `/api/coordinadores/${coordinadorId}/autorizaciones/${programaId}/${fechaInicio}`,
+  );
+}

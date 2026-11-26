@@ -1,7 +1,14 @@
 import { useCallback, useState } from "react";
-import { listarAutorizaciones, type Autorizacion, type Persona } from "../../api/persons";
+import {
+  eliminarAutorizacion,
+  listarAutorizaciones,
+  type Autorizacion,
+  type Persona,
+} from "../../api/persons";
 import { listarProgramas } from "../../api/program";
+import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
+import { ErrorMessage } from "../components/ErrorMessage";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { AutorizacionForm } from "./AutorizacionForm";
@@ -17,6 +24,9 @@ interface AutorizacionesModalProps {
 export function AutorizacionesModal({ coordinador, onClose }: AutorizacionesModalProps) {
   const [editor, setEditor] = useState<{ autorizacion?: Autorizacion } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<Autorizacion | null>(null);
+  const eliminar = useApiMutation(eliminarAutorizacion);
+  const eliminando = eliminar.state.status === "loading";
 
   const loadAutorizaciones = useCallback(
     (signal: AbortSignal) => listarAutorizaciones(coordinador.id, signal),
@@ -31,8 +41,28 @@ export function AutorizacionesModal({ coordinador, onClose }: AutorizacionesModa
 
   const nombrePrograma = (id: string) =>
     programas.status === "success"
-      ? (programas.data.items.find((p) => p.id === id)?.nombre ?? "Programa desconocido")
-      : "…";
+      ? (programas.data.items.find((p) => p.id === id)?.nombre ?? id)
+      : id;
+
+  function cancelarEliminacion() {
+    if (eliminando) return;
+    setPendiente(null);
+    eliminar.reset();
+  }
+
+  async function confirmarEliminacion() {
+    if (!pendiente) return;
+    const resultado = await eliminar.run(
+      coordinador.id,
+      pendiente.programaId,
+      pendiente.fechaInicio,
+    );
+    if (resultado.ok) {
+      setPendiente(null);
+      setNotice("Autorización eliminada correctamente.");
+      autorizaciones.reload();
+    }
+  }
 
   function handleSaved() {
     const editando = editor?.autorizacion !== undefined;
@@ -44,8 +74,38 @@ export function AutorizacionesModal({ coordinador, onClose }: AutorizacionesModa
   }
 
   return (
-    <Modal title={`Autorizaciones de ${coordinador.nombre}`} onClose={onClose}>
-      {editor ? (
+    <Modal
+      title={pendiente ? "Confirmar eliminación" : `Autorizaciones de ${coordinador.nombre}`}
+      onClose={pendiente ? cancelarEliminacion : onClose}
+    >
+      {pendiente ? (
+        <div className="module-panel">
+          <p>
+            ¿Deseas eliminar la autorización de <strong>{coordinador.nombre}</strong> para{" "}
+            <strong>{nombrePrograma(pendiente.programaId)}</strong>, con inicio el{" "}
+            <strong>{pendiente.fechaInicio}</strong>?
+          </p>
+          {eliminar.state.status === "error" && <ErrorMessage error={eliminar.state.error} />}
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={cancelarEliminacion}
+              disabled={eliminando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarEliminacion}
+              disabled={eliminando}
+            >
+              {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+            </button>
+          </div>
+        </div>
+      ) : editor ? (
         programas.status === "success" ? (
           <AutorizacionForm
             key={
@@ -123,6 +183,18 @@ export function AutorizacionesModal({ coordinador, onClose }: AutorizacionesModa
                             }}
                           >
                             ✎
+                          </button>
+                          <button
+                            type="button"
+                            className="btn"
+                            aria-label={`Eliminar autorización de ${nombrePrograma(a.programaId)} desde ${a.fechaInicio}`}
+                            onClick={() => {
+                              setNotice(null);
+                              eliminar.reset();
+                              setPendiente(a);
+                            }}
+                          >
+                            Eliminar
                           </button>
                         </td>
                       </tr>
