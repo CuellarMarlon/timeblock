@@ -74,6 +74,11 @@ export function actualizarAsignatura(id: string, input: AsignaturaInput) {
   return apiClient.put<Asignatura>(`/api/asignaturas/${id}`, input);
 }
 
+/** Elimina una asignatura sin dependencias. */
+export function eliminarAsignatura(id: string) {
+  return apiClient.delete<void>(`/api/asignaturas/${id}`);
+}
+
 /** Lista las asignaturas asociadas a un programa. */
 export function listarAsignaturasDePrograma(
   programaId: string,
