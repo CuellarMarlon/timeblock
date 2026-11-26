@@ -52,7 +52,12 @@ export function PersonasPanel() {
 
   const nombres = useMemo(() => {
     if (personas.status !== "success") return new Map<string, string>();
-    return new Map(personas.data.items.map((p) => [p.id, p.nombre]));
+    return new Map(
+      personas.data.items.map((p) => [
+        p.id,
+        `${p.nombre}${p.activo === false ? " (inactivo)" : ""}`,
+      ]),
+    );
   }, [personas]);
 
   const coordinadores: Persona[] = useMemo(() => {

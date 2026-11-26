@@ -103,9 +103,9 @@ No incluye generación automática, completar horas/periodo/aula de las impartic
 
 Las convenciones de rutas, paginación y códigos de respuesta se deben mantener sincronizadas con el documento OpenAPI cuando se implementen los endpoints.
 
-# Matrículas: endpoints que el frontend asume
+# Matrículas
 
-## GET /api/matriculas (pendiente de implementar)
+## GET /api/matriculas
 
 Lista todas las matrículas con filtros opcionales y paginación.
 
@@ -122,9 +122,6 @@ Respuesta `200`: `PagedResult<MatriculaResponse>`
 (`items`, `page`, `pageSize`, `totalItems`), con
 `MatriculaResponse = { estudianteId, programaId }`.
 
-## Edición de matrículas (pendiente de decisión)
+## Corrección y baja de matrículas
 
-El diseño incluye "editar matrícula" (cambiar estudiante o programa), pero el
-contrato no permite modificar ni eliminar una matrícula. Hace falta
-`DELETE /api/programas/{programaId}/matriculas/{estudianteId}` (y/o un `PUT`).
-Hasta entonces el frontend no muestra el botón de editar.
+Se puede desmatricular con `DELETE /api/programas/{programaId}/matriculas/{estudianteId}` y matricular nuevamente a la pareja correcta. Son operaciones independientes: no existe un cambio de matrícula atómico ni se conserva historial de bajas en M4.

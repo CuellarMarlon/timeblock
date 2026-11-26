@@ -38,6 +38,21 @@ describe("Desvincular asignatura", () => {
     expect(mocked.desasociarAsignatura).not.toHaveBeenCalled();
   });
 
+  it("permite consultar relaciones históricas de un programa inactivo sin crear nuevas", async () => {
+    mocked.listarProgramas.mockResolvedValue(pagina([{ ...programa, activo: false }]));
+    mocked.listarAsignaturasDePrograma.mockResolvedValue(
+      pagina([{ ...asignatura, activo: false }]),
+    );
+    const user = userEvent.setup();
+    render(<AsociarAsignatura />);
+    await user.selectOptions(await screen.findByLabelText("Programa académico"), "p1");
+    expect(await screen.findByText("Bases de Datos (inactiva)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Asociar" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Desvincular Bases de Datos de Ingeniería (inactivo)" }),
+    ).toBeInTheDocument();
+  });
+
   it("desvincula la pareja y recarga sus asociaciones", async () => {
     mocked.desasociarAsignatura.mockResolvedValue(undefined);
     const user = userEvent.setup();

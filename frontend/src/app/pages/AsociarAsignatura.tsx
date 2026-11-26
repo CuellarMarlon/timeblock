@@ -106,7 +106,12 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
 
   const nombrePrograma = (id: string) =>
     programas.status === "success"
-      ? (programas.data.items.find((p) => p.id === id)?.nombre ?? "")
+      ? (() => {
+          const programa = programas.data.items.find((p) => p.id === id);
+          return programa
+            ? `${programa.nombre}${programa.activo === false ? " (inactivo)" : ""}`
+            : id;
+        })()
       : "";
 
   return (
@@ -216,7 +221,10 @@ export function AsociarAsignatura({ refreshKey = 0 }: AsociarAsignaturaProps) {
                     {data.items.map((a) => (
                       <tr key={a.id}>
                         <td>{nombrePrograma(programaId)}</td>
-                        <td>{a.nombre}</td>
+                        <td>
+                          {a.nombre}
+                          {a.activo === false ? " (inactiva)" : ""}
+                        </td>
                         <td>
                           <button
                             type="button"

@@ -130,6 +130,7 @@ export function BloquesPage() {
                   <tr key={bloque.id}>
                     <td>
                       <Link to={`/bloques/${bloque.id}`}>{bloque.descripcion}</Link>
+                      {bloque.activo === false && " (inactivo)"}
                     </td>
                     <td>{nombreDe(catalogos.asignaturas, bloque.asignaturaId)}</td>
                     <td>{etiquetaTipoActividad(bloque.tipoActividad)}</td>
