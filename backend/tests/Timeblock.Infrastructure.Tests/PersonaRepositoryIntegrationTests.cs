@@ -10,6 +10,31 @@ namespace Timeblock.Infrastructure.Tests;
 public sealed class PersonaRepositoryIntegrationTests
 {
     [PostgreSqlFact]
+    public async Task EliminarPersona_EliminaPerfilYRechazaDependenciasSinCambiosParciales()
+    {
+        var options = new DbContextOptionsBuilder<TimeblockDbContext>()
+            .UseNpgsql(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION")!).Options;
+        await using var db = new TimeblockDbContext(options);
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var service = new PersonasService(new PersonaRepository(db));
+        var ct = CancellationToken.None;
+        Persona jefe = await service.CrearAsync(new CrearPersonaCommand("Jefe", new PerfilJefeDepartamentoCrearCommand()), ct);
+        Persona coordinador = await service.CrearAsync(new CrearPersonaCommand("Coordinador", new PerfilCoordinadorCrearCommand("Sistemas")), ct);
+        Persona estudiante = await service.CrearAsync(new CrearPersonaCommand("Estudiante", new PerfilEstudianteCrearCommand(20, "C311", coordinador.Id)), ct);
+        await service.EliminarAsync(jefe.Id, ct);
+        Assert.False(await db.Personas.AsNoTracking().AnyAsync(x => x.IdPersona == jefe.Id, ct));
+        Assert.False(await db.JefesDepartamento.AsNoTracking().AnyAsync(x => x.IdJefeDepartamento == jefe.Id, ct));
+        await Assert.ThrowsAsync<ResourceConflictException>(() => service.EliminarAsync(coordinador.Id, ct));
+        Assert.True(await db.Personas.AsNoTracking().AnyAsync(x => x.IdPersona == coordinador.Id, ct));
+        Assert.True(await db.Coordinadores.AsNoTracking().AnyAsync(x => x.IdCoordinador == coordinador.Id, ct));
+        Assert.True(await db.Estudiantes.AsNoTracking().AnyAsync(x => x.IdEstudiante == estudiante.Id, ct));
+        await service.EliminarAsync(estudiante.Id, ct);
+        await service.EliminarAsync(coordinador.Id, ct);
+        await transaction.RollbackAsync(ct);
+    }
+
+    [PostgreSqlFact]
     public async Task PersonasYAutorizaciones_SeGuardanConsultanActualizanYRespetanClaves()
     {
         string connectionString = Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION")!;

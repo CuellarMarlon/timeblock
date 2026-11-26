@@ -28,6 +28,13 @@ public sealed class PersonasService(IPersonaRepository personas)
     public async Task<Persona> ObtenerAsync(Guid id, CancellationToken ct) =>
         await personas.ObtenerAsync(id, ct) ?? throw new ResourceNotFoundException($"No existe la persona '{id}'.");
 
+    public async Task EliminarAsync(Guid id, CancellationToken ct)
+    {
+        if (id == Guid.Empty) throw new InvalidRequestException("El identificador de la persona no es válido.");
+        if (!await personas.EliminarAsync(id, ct))
+            throw new ResourceNotFoundException($"No existe la persona '{id}'.");
+    }
+
     public Task<PagedResult<Persona>> ListarAsync(PersonaFilter filter, CancellationToken ct)
     {
         ValidarPaginacion(filter.Page, filter.PageSize);

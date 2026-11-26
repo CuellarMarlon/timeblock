@@ -81,6 +81,47 @@ public sealed class PersonaRepository(TimeblockDbContext db) : IPersonaRepositor
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task<bool> EliminarAsync(Guid id, CancellationToken ct)
+    {
+        var actual = db.Database.CurrentTransaction;
+        await using var propia = actual is null ? await db.Database.BeginTransactionAsync(ct) : null;
+        var transaccion = actual ?? propia!;
+        const string savepoint = "eliminar_persona";
+        if (actual is not null) await transaccion.CreateSavepointAsync(savepoint, ct);
+        try
+        {
+            // El bloqueo evita nuevas referencias a la persona mientras se elimina el perfil.
+            var filas = await db.Personas.FromSqlInterpolated($"SELECT * FROM \"PERSONA\" WHERE \"idPersona\" = {id} FOR UPDATE")
+                .AsNoTracking().ToListAsync(ct);
+            if (filas.Count == 0)
+            {
+                if (propia is not null) await propia.CommitAsync(ct);
+                else await transaccion.ReleaseSavepointAsync(savepoint, ct);
+                return false;
+            }
+
+            await db.Estudiantes.Where(x => x.IdEstudiante == id).ExecuteDeleteAsync(ct);
+            await db.Coordinadores.Where(x => x.IdCoordinador == id).ExecuteDeleteAsync(ct);
+            await db.JefesDepartamento.Where(x => x.IdJefeDepartamento == id).ExecuteDeleteAsync(ct);
+            await db.Personas.Where(x => x.IdPersona == id).ExecuteDeleteAsync(ct);
+            if (propia is not null) await propia.CommitAsync(ct);
+            else await transaccion.ReleaseSavepointAsync(savepoint, ct);
+            return true;
+        }
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.ForeignKeyViolation or "23001")
+        {
+            if (propia is not null) await propia.RollbackAsync(ct);
+            else await transaccion.RollbackToSavepointAsync(savepoint, ct);
+            throw new ResourceConflictException("No se puede eliminar la persona porque tiene registros relacionados.", ex);
+        }
+        catch
+        {
+            if (propia is not null) await propia.RollbackAsync(CancellationToken.None);
+            else await transaccion.RollbackToSavepointAsync(savepoint, CancellationToken.None);
+            throw;
+        }
+    }
+
     public async Task<IReadOnlyList<AutorizacionCoordinador>> ListarAutorizacionesAsync(
         Guid coordinatorId, AutorizacionFilter filter, CancellationToken ct)
     {

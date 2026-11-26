@@ -54,6 +54,21 @@ public sealed class EliminarAutorizacionEndpointsTests(TimeblockApiFactory facto
         Assert.Equal("application/problem+json", respuesta.Content.Headers.ContentType?.MediaType);
     }
 
+    [Theory]
+    [InlineData("existe", HttpStatusCode.NoContent)]
+    [InlineData("ausente", HttpStatusCode.NotFound)]
+    [InlineData("utilizada", HttpStatusCode.Conflict)]
+    public async Task EliminarPersona_RespondeSegunResultado(string escenario, HttpStatusCode esperado)
+    {
+        IPersonaRepository repo = DispatchProxy.Create<IPersonaRepository, PersonaProxy>();
+        ((PersonaProxy)repo).Escenario = escenario;
+        using var app = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+            services.Replace(ServiceDescriptor.Scoped<IPersonaRepository>(_ => repo))));
+        using var client = app.CreateClient();
+        using var respuesta = await client.DeleteAsync($"/api/personas/{Guid.NewGuid()}");
+        Assert.Equal(esperado, respuesta.StatusCode);
+    }
+
     public class PersonaProxy : DispatchProxy
     {
         public string Escenario { get; set; } = "";
@@ -67,7 +82,7 @@ public sealed class EliminarAutorizacionEndpointsTests(TimeblockApiFactory facto
                 if (targetMethod?.Name == nameof(IPersonaRepository.GuardarAutorizacionAsync))
                     return Task.FromException(new ResourceConflictException("Cambio inválido."));
             }
-            return targetMethod?.Name == nameof(IPersonaRepository.EliminarAutorizacionAsync)
+            return targetMethod?.Name is nameof(IPersonaRepository.EliminarAutorizacionAsync) or nameof(IPersonaRepository.EliminarAsync)
                 ? Escenario switch
                 {
                     "existe" => Task.FromResult(true),

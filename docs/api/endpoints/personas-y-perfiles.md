@@ -85,6 +85,8 @@ Para coordinador, el cuerpo usa `{"tipo":"coordinador","especialidad":"..."}`; p
 
 El identificador y el tipo de perfil no se cambian con `PUT`. Una conversión de perfil requiere una regla explícita y queda fuera del contrato M4 inicial.
 
+`DELETE /api/personas/{personaId}` elimina una persona sin dependencias junto con su perfil en una transacción. Responde `204` al eliminar, `404` si no existe, `400` para UUID vacío y `409` si tiene registros relacionados. Si hay conflicto, conserva tanto la persona como su perfil.
+
 ## Autorizaciones de coordinador por programa
 
 | Método y ruta | Resultado |

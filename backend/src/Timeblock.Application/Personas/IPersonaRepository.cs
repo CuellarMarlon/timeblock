@@ -10,6 +10,7 @@ public interface IPersonaRepository
     Task<Persona?> ObtenerAsync(Guid personaId, CancellationToken cancellationToken);
     Task<PagedResult<Persona>> ListarAsync(PersonaFilter filter, CancellationToken cancellationToken);
     Task GuardarCambiosAsync(Persona persona, CancellationToken cancellationToken);
+    Task<bool> EliminarAsync(Guid personaId, CancellationToken cancellationToken);
     Task<IReadOnlyList<AutorizacionCoordinador>> ListarAutorizacionesAsync(
         Guid coordinadorId, AutorizacionFilter filter, CancellationToken cancellationToken);
     Task AgregarAutorizacionAsync(AutorizacionCoordinador autorizacion, CancellationToken cancellationToken);
