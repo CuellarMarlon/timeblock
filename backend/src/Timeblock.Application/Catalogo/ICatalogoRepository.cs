@@ -17,6 +17,7 @@ public interface ICatalogoRepository
     Task<PagedResult<Asignatura>> ListarAsignaturasAsync(
         string? nombre, PageRequest page, CancellationToken cancellationToken);
     Task GuardarAsignaturaAsync(CancellationToken cancellationToken);
+    Task<bool> EliminarAsignaturaAsync(Guid asignaturaId, CancellationToken cancellationToken);
 
     Task<bool> ExisteProgramaAsync(Guid programaId, CancellationToken cancellationToken);
     Task<bool> ExisteAsignaturaAsync(Guid asignaturaId, CancellationToken cancellationToken);

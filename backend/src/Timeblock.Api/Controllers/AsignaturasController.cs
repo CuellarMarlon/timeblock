@@ -48,4 +48,14 @@ public sealed class AsignaturasController(CatalogoService catalogo) : Controller
         Guid asignaturaId, ActualizarAsignaturaRequest request, CancellationToken ct) =>
         Ok(AsignaturaResponse.FromDomain(await catalogo.ActualizarAsignaturaAsync(
             asignaturaId, request.Nombre, ct)));
+    [HttpDelete("{asignaturaId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Eliminar(Guid asignaturaId, CancellationToken ct)
+    {
+        await catalogo.EliminarAsignaturaAsync(asignaturaId, ct);
+        return NoContent();
+    }
 }

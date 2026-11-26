@@ -75,6 +75,14 @@ public sealed class CatalogoService(ICatalogoRepository catalogo) : ICasoDeUso
         return asignatura;
     }
 
+    public async Task EliminarAsignaturaAsync(Guid asignaturaId, CancellationToken cancellationToken)
+    {
+        if (asignaturaId == Guid.Empty)
+            throw new InvalidRequestException("El identificador de la asignatura no es válido.");
+        if (!await catalogo.EliminarAsignaturaAsync(asignaturaId, cancellationToken))
+            throw new ResourceNotFoundException($"No existe la asignatura '{asignaturaId}'.");
+    }
+
     public async Task AsociarAsignaturaAsync(
         Guid programaId, Guid asignaturaId, CancellationToken cancellationToken)
     {

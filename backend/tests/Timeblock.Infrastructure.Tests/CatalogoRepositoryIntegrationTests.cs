@@ -11,6 +11,30 @@ namespace Timeblock.Infrastructure.Tests;
 public sealed class CatalogoRepositoryIntegrationTests
 {
     [PostgreSqlFact]
+    public async Task EliminarAsignatura_SinDependenciasElimina_ConProgramaRechaza()
+    {
+        var options = new DbContextOptionsBuilder<TimeblockDbContext>()
+            .UseNpgsql(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION")!).Options;
+        await using var db = new TimeblockDbContext(options);
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var service = new CatalogoService(new CatalogoRepository(db));
+        var ct = CancellationToken.None;
+        var libre = await service.CrearAsignaturaAsync($"Libre {Guid.NewGuid()}", ct);
+        var usada = await service.CrearAsignaturaAsync($"Usada {Guid.NewGuid()}", ct);
+        var programa = await service.CrearProgramaAsync($"Programa {Guid.NewGuid()}", "Plan", ct);
+        await service.AsociarAsignaturaAsync(programa.Id, usada.Id, ct);
+        await service.EliminarAsignaturaAsync(libre.Id, ct);
+        Assert.False(await db.Asignaturas.AsNoTracking().AnyAsync(x => x.Id == libre.Id, ct));
+        await transaction.CreateSavepointAsync("antes_eliminar", ct);
+        await Assert.ThrowsAsync<ResourceConflictException>(() => service.EliminarAsignaturaAsync(usada.Id, ct));
+        await transaction.RollbackToSavepointAsync("antes_eliminar", ct);
+        Assert.True(await db.Asignaturas.AsNoTracking().AnyAsync(x => x.Id == usada.Id, ct));
+        Assert.True(await db.ProgramasAsignaturas.AsNoTracking().AnyAsync(x => x.ProgramaId == programa.Id && x.AsignaturaId == usada.Id, ct));
+        await transaction.RollbackAsync(ct);
+    }
+
+    [PostgreSqlFact]
     public async Task EliminarPrograma_SinDependenciasElimina_ConAsignaturaRechaza()
     {
         var options = new DbContextOptionsBuilder<TimeblockDbContext>()

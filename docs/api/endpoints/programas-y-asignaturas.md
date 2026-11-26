@@ -41,6 +41,7 @@ Respuesta `201 Created`:
 | `GET /api/asignaturas` | Lista asignaturas; filtro opcional `nombre`. |
 | `GET /api/asignaturas/{asignaturaId}` | Consulta una asignatura. |
 | `PUT /api/asignaturas/{asignaturaId}` | Actualiza el nombre. |
+| `DELETE /api/asignaturas/{asignaturaId}` | Elimina una asignatura sin registros relacionados. |
 | `PUT /api/programas/{programaId}/asignaturas/{asignaturaId}` | Asocia la asignatura al programa; idempotente. |
 | `DELETE /api/programas/{programaId}/asignaturas/{asignaturaId}` | Desvincula una asignatura de un programa. |
 
@@ -75,6 +76,8 @@ Respuesta para una asociación creada o ya existente: `204 No Content`.
 - `409`: duplicidad según restricciones del modelo de datos.
 
 Eliminar un programa devuelve `204` si se elimina, `404` si no existe y `409` si tiene registros relacionados. UUID vacío devuelve `400`.
+
+Eliminar una asignatura devuelve `204` si se elimina, `404` si no existe y `409` si tiene registros relacionados. UUID vacío devuelve `400`.
 
 Se puede desvincular una asignatura de un programa si no hay bloques de esa asignatura asociados al programa (RII03). La operación conserva el programa y la asignatura y responde `204`. Si la relación no existe, responde `404`; si hay bloques que impiden retirarla, responde `409`. Un UUID vacío responde `400`; un identificador con formato inválido no coincide con la ruta y responde `404`.
 
