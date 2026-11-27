@@ -8,7 +8,7 @@
 - [Revisión de cobertura de M5](revisiones/cobertura-diseno-m5.md): comparación del diseño con la versión de M4 revisada en #68.
 - [Bajas y eliminación de M4](revisiones/bajas-y-eliminacion-m4.md): decisiones de #66 y su evolución para M6.
 - [Demostración de M4](demos/demo-m4.md): guion, ensayo y registro de observaciones.
-- [Plan de M6](planificacion/plan-m6.md): propuesta anterior, pendiente de rehacer en #69.
+- [Plan de M6](planificacion/plan-m6.md): tareas creadas, dependencias y acuerdos de planificación pendientes en #69.
 - [Evaluaciones](evaluaciones/): documentos de las evaluaciones del proyecto.
 
 Los acuerdos de M6 describen trabajo futuro; consultar la revisión de cobertura y el código para distinguirlos de lo ya implementado.

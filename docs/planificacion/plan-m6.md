@@ -1,321 +1,266 @@
 # Plan de M6
 
-Propuesta de la issue #69 para convertir la revisión de M5 en un plan de ejecución de M6. Parte de la [revisión de cobertura](../revisiones/cobertura-diseno-m5.md) (#68) y de las [reglas de negocio propuestas](../reglas/reglas-negocio-m6.md) (#71).
+Propuesta nueva para la [issue #69](https://github.com/CuellarMarlon/timeblock/issues/69). Sustituye el plan anterior y parte de:
 
-**Estado: propuesta.** Las prioridades, estimaciones y responsables se deben acordar en equipo. Las issues de GitHub se crearán después de ese acuerdo, con el texto de la sección 4.
+- [Diseño de la base de datos](../Diseño%20de%20la%20Base%20de%20Datos.pdf): requisitos, relaciones y restricciones.
+- [Identidad y permisos](../reglas/identidad-y-permisos-m6.md), de #67.
+- [Reglas de horarios](../reglas/reglas-negocio-m6.md), de #71.
+- [Revisión de cobertura de M5](../revisiones/cobertura-diseno-m5.md): fotografía del cierre de M4, no inventario actualizado.
+- [Bajas y eliminación de M4](../revisiones/bajas-y-eliminacion-m4.md), de #66.
 
-**Aviso de actualización:** este plan conserva la propuesta hecha sobre la versión indicada abajo y todavía no incorpora los acuerdos posteriores de [identidad y permisos](../reglas/identidad-y-permisos-m6.md), las [reglas de horarios revisadas](../reglas/reglas-negocio-m6.md) ni el cierre de #66. Sus referencias a P1–P14, al horario manual y al orden de revisión y validación están desactualizadas. Las estimaciones, dependencias, prioridades y tareas deben rehacerse en #69; no utilizar la sección 4 como contrato definitivo.
+**Estado:** las 30 tareas están creadas en el [proyecto de GitHub](https://github.com/users/CuellarMarlon/projects/2), con estado Backlog. La sección 7 relaciona los identificadores `M6-xx` con las issues reales y la sección 8 registra el reparto inicial. Las prioridades, estimaciones y calendario aún deben acordarse y el equipo puede ajustar los responsables. Crear una issue para una tarea no significa que la funcionalidad ya esté implementada.
 
 ## 1. Punto de partida
 
-| Dato                       | Valor                                                                                                                                                                  |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Código                     | `develop` en `0b792c9` (fusión del PR #75)                                                                                                                             |
-| Pendiente según el diseño  | 29 RF pendientes, 5 parciales y 1 solo en esquema; 6 de las 8 RII; RNF01 y RNF02                                                                                       |
-| Alcance del hito M6        | Generación automática, imparticiones y aulas, revisión y validación, asignación, asistencia, solicitudes de cambio, reportes con PDF y almacén analítico en ClickHouse |
-| Fecha del hito M6 (GitHub) | 2026-11-10, **ya vencida**. M7 (2026-11-17) y M8 (2026-11-24) también                                                                                                  |
-| Pendientes de M4           | #65 resuelta (PR #72). #66 (bajas) en curso                                                                                                                            |
-| Decisiones abiertas        | #67 (identidad y permisos) y P1–P14 de #71                                                                                                                             |
-
-### Ritmo de M4 como referencia
-
-M4 empezó el 2026-10-12 con fecha prevista el 2026-10-27. La verificación del recorrido completo (#40) se cerró el 2026-11-24: **seis semanas en lugar de dos**. M4 cubrió 11 RF completos. M6 tiene unos 30 RF pendientes, la mayoría con reglas más complejas (concurrencia, transacciones de varias tablas, un algoritmo de búsqueda y un segundo motor de base de datos).
-
-## 2. Decisiones previas
-
-El camino crítico no puede empezar sin estas decisiones. Propuesta: cerrarlas en una sola reunión antes de crear las issues.
-
-| Decisión                                                      | Origen    | Bloquea                     |
-| ------------------------------------------------------------- | --------- | --------------------------- |
-| P5–P8 y P13: parámetros de generación y origen del horario    | #71       | M6-09, M6-10                |
-| P1–P4 y P14: orden de revisión y validación y quién participa | #71       | M6-12 a M6-15               |
-| P9: zona horaria de las reglas por fecha                      | #71       | M6-03                       |
-| P10–P12: cupo, formato del período y quién asigna             | #71       | M6-16                       |
-| Dominio de `periodoImp` y representación de intervalos        | D4, D9    | M6-07                       |
-| Identidad y matriz de permisos                                | #67, D15  | M6-05 y los filtros por rol |
-| ESQUEMA_LLAVE como tabla física o relación teórica            | D6        | M6-12                       |
-| Perfiles disjuntos también en la base de datos                | D11       | M6-02                       |
-| Calendario real de M6 a M8                                    | Riesgo R1 | Todo el plan                |
-
-## 3. Issues propuestas
-
-Tamaños en jornadas de trabajo de una persona: S = 1, M = 2–3, L = 4–5. Prioridad 1 es el camino crítico del flujo de un horario; 2 completa el alcance de M6; 3 se puede recortar o retrasar sin romper el flujo.
-
-| Id    | Issue                                                      | Requisitos                     | Depende de                        | Tamaño | Jornadas | Prioridad |
-| ----- | ---------------------------------------------------------- | ------------------------------ | --------------------------------- | ------ | -------: | --------: |
-| M6-01 | Proteger RII01 y el alta de FECHA ante concurrencia        | D8, D10                        | —                                 | S      |        1 |         2 |
-| M6-02 | Completar pruebas de API y corregir documentación          | D11, D12, D13                  | Decisión D11                      | S      |        1 |         3 |
-| M6-03 | Aplicar la zona horaria institucional                      | F01, RII01                     | P9                                | S      |        1 |         3 |
-| M6-04 | Ampliar los datos de demostración para M6                  | —                              | Se completa al final              | M      |        2 |         3 |
-| M6-05 | Implementar identidad y permisos                           | RF09, RF26, RF29, RF45         | #67                               | L      |        4 |         2 |
-| M6-06 | Catálogo de aulas                                          | RI16                           | —                                 | S      |        1 |         1 |
-| M6-07 | Programar imparticiones e impedir solapamientos de aula    | RF16, RF17, RI14, RII04        | M6-06, D4/D9                      | L      |        4 |         1 |
-| M6-08 | Consultar disponibilidad y ocupación                       | RF27, RNF01                    | M6-07                             | M      |        3 |         3 |
-| M6-09 | Esquema de los parámetros de generación                    | RI13, D2, D3                   | P5–P8, P13                        | S      |        1 |         1 |
-| M6-10 | Generación automática de horarios                          | RF12–RF14                      | M6-09                             | L      |        5 |         1 |
-| M6-11 | Pantalla de generación                                     | RF12, RF13                     | Contrato de M6-10                 | M      |        2 |         2 |
-| M6-12 | REVISION, VALIDACION y transiciones de estado              | RI17–RI20, D5, D6              | P1–P4, P14                        | M      |        2 |         1 |
-| M6-13 | Revisión del jefe de departamento y regeneración           | RF18–RF20, RF22                | M6-12, M6-07                      | M      |        3 |         1 |
-| M6-14 | Validación por coordinadores                               | RF21, RF22, RII02              | M6-12                             | M      |        2 |         1 |
-| M6-15 | Pantallas de revisión y validación                         | RF18–RF22                      | Contratos de M6-13 y M6-14        | M      |        3 |         2 |
-| M6-16 | Asignar horarios a estudiantes                             | RF23, RF24, RI21, RII08, § 7.4 | M6-14, P10–P12                    | M      |        3 |         1 |
-| M6-17 | Consultas de horarios de estudiantes y coordinadores       | RF25, RF26, RI22–RI24          | M6-16; M6-05 para filtrar por rol | S      |        1 |         2 |
-| M6-18 | Pantallas de asignación y consulta                         | RF23–RF26                      | Contratos de M6-16 y M6-17        | M      |        2 |         2 |
-| M6-19 | Registro de asistencia                                     | RF28, RI25, RI27, RII05        | M6-07, M6-16                      | M      |        3 |         2 |
-| M6-20 | Consulta de asistencia y su pantalla                       | RF29, RI26                     | M6-19; M6-05 para los permisos    | M      |        2 |         3 |
-| M6-21 | Crear y consultar solicitudes de cambio                    | RF30, RF31, RF34, RI28, RII06  | M6-16                             | M      |        2 |         2 |
-| M6-22 | Resolver solicitudes de cambio                             | RF32, RF33, RI29–RI31, RII07   | M6-21                             | L      |        4 |         2 |
-| M6-23 | Pantallas de solicitudes de cambio                         | RF30–RF34                      | Contratos de M6-21 y M6-22        | M      |        3 |         3 |
-| M6-24 | Componentes de reportes: tablas ordenables, gráficos y PDF | RF43–RF45, RI40                | —                                 | M      |        3 |         2 |
-| M6-25 | Reportes de horarios                                       | RF35–RF37, RF39, RI32–RI34     | M6-10, M6-14, M6-24               | M      |        3 |         2 |
-| M6-26 | Reportes de asistencia                                     | RF38, RF40–RF42, RI35–RI39     | M6-19, M6-22, M6-24               | L      |        4 |         3 |
-| M6-27 | Almacén analítico en ClickHouse y sincronización           | RF46, RI41, RNF02, § 7.4       | Fuentes: M6-07 y M6-19            | L      |        5 |         2 |
-|       | **Total**                                                  |                                |                                   |        |   **70** |           |
-
-### Dependencias
-
-```mermaid
-flowchart LR
-  DEC[Decisiones previas] --> M609[M6-09 Parámetros]
-  DEC --> M612[M6-12 Revisión y validación: esquema]
-  M606[M6-06 Aulas] --> M607[M6-07 Imparticiones]
-  M609 --> M610[M6-10 Generación]
-  M612 --> M613[M6-13 Revisión]
-  M607 --> M613
-  M612 --> M614[M6-14 Validación]
-  M614 --> M616[M6-16 Asignación]
-  M616 --> M619[M6-19 Asistencia]
-  M607 --> M619
-  M616 --> M621[M6-21 Solicitudes]
-  M621 --> M622[M6-22 Resolución]
-  M619 --> M626[M6-26 Reportes de asistencia]
-  M622 --> M626
-  M610 --> M625[M6-25 Reportes de horarios]
-  M614 --> M625
-  M624[M6-24 Componentes de reportes] --> M625
-  M624 --> M626
-  M607 --> M627[M6-27 ClickHouse]
-  M619 --> M627
-```
-
-### Camino crítico y trabajo en paralelo
+En M4 existen personas, perfiles, autorizaciones, catálogos, matrículas, bloques y armado manual de horarios. #65 resolvió los selectores de matrícula y #66 añadió bajas y protección de integridad. La revisión de #68 se hizo antes de esos cambios.
 
-El camino más largo es M6-12 → M6-14 → M6-16 → M6-21 → M6-22 → M6-26. Suma unas **17 jornadas seguidas** aunque el resto del equipo trabaje en paralelo: con dedicación completa son tres semanas y media, y más con dedicación parcial. Las ramas de imparticiones (M6-06 → M6-07 → M6-13) y de generación (M6-09 → M6-10) son más cortas y van en paralelo.
-
-Para acortarlo:
+La migración `ProtegerVigenciaHorario` de #66 bloquea la autorización al crear un horario y protege los horarios existentes ante cambios que los invaliden. `HorarioRepositoryIntegrationTests.CrearHorarioYModificarAutorizacion_Concurrentes_NoInvalidanHorario` cubre los dos órdenes de esa carrera. No se han vuelto a ejecutar esas pruebas para preparar este plan. Por su parte, `TimeblockDbContext` todavía consulta y luego inserta las fechas que faltan; la carrera de alta de `FECHA` sigue necesitando comprobación y corrección.
 
-- **M6-13 y M6-14 van a la vez.** La validación se prueba con horarios ya aprobados en los datos de prueba, sin esperar a la pantalla ni al flujo de revisión.
-- **M6-13 no espera a la generación.** La regeneración enlaza la revisión con el horario nuevo (RF20). Se puede probar con un horario armado a mano y conectar M6-10 cuando esté lista.
-- **Las pantallas no esperan a la implementación.** Si el contrato de cada endpoint se acuerda al empezar la issue de backend, M6-11, M6-15, M6-18 y M6-23 avanzan en paralelo con datos simulados, como en M4.
-- **Los reportes no esperan a ClickHouse.** M6-25 y M6-26 consultan PostgreSQL. M6-27 solo sincroniza, y los reportes pueden pasar a leer de ClickHouse después si da tiempo.
+La issue [#77](https://github.com/CuellarMarlon/timeblock/issues/77) se actualizó como M6-01, conservando su historial y responsable. La protección de RII01 fue abordada por #66; el alta concurrente de `FECHA` sigue pendiente de comprobar y corregir.
 
-Pueden empezar ya, sin esperar a ninguna decisión: M6-01, M6-06, M6-24 y el diseño del esquema de M6-27.
+Las fechas de los hitos M6–M8 estaban vencidas al preparar este documento; deben confirmarse con el equipo antes de establecer un calendario real.
 
-## 4. Alcance y criterios de cada issue
+## 2. Puntos que requieren atención antes de implementar
 
-Cada issue de GitHub incluirá su objetivo, estos criterios y la documentación de cierre. Todas exigen pruebas en las capas que toquen, actualizar el contrato de la API cuando cambien endpoints y dejar `develop` compilando con las pruebas en verde.
+Estos puntos no autorizan a cambiar el PDF sin revisar su efecto. Se investigan en las tareas indicadas y, si requieren una decisión funcional o una modificación formal del diseño, se documenta y consulta antes de implementarla.
 
-### Transversales
+1. **Cobertura, edición y candidatos:** el acuerdo calcula la cobertura sobre todos los bloques seleccionados, pero no conserva la selección completa. Los candidatos omitidos no pueden reconstruirse del horario; tampoco puede demostrarse que una selección introducida después sea la original. Hay que resolver cómo verificar cobertura y orden al editar o enviar a validar sin afirmar que se comprobó algo que no consta. Afecta M6-08 y M6-10.
+2. **Fechas y plantilla semanal:** `periodoAcademico` conserva meses y años, no los días exactos de inicio y fin ni las franjas candidatas. Hay que definir cómo verificar una semana fija tras editar sin inventar fechas que no estén disponibles. Afecta M6-08 y M6-10.
+3. **Autorizaciones históricas:** la regla actual impide desactivar `puedeGenerar` en una autorización ya usada por horarios. La matriz de #67 exige que el permiso pueda dejar de dar acceso sin alterar actuaciones históricas. También hay que preservar la autorización utilizada en validaciones. La solución debe respetar el diseño y proteger concurrencia, no reescribir silenciosamente la historia. Afecta M6-05 y M6-13.
+4. **Vigencias y asistencia:** RII05 y RII06 hablan de vigencia en una fecha; las asignaciones conservan marcas de tiempo. Hay que concretar los límites de inicio y fin y cómo se consulta una fecha de impartición sin perder historial ni permitir dobles asignaciones. Afecta M6-15, M6-17 y M6-19.
+5. **ESQUEMA_LLAVE:** el PDF (§6.9.2 y §7.2.21) la materializa como tabla física. Existe parcialmente, pero no define cuándo ni con qué significado se llena. No se elimina ni se insertan combinaciones arbitrarias; las referencias se estudian según las claves completas. Afecta M6-21.
+6. **Cálculos de reportes:** acordar y documentar los denominadores, el tratamiento de tardanzas y ausencias justificadas, los registros faltantes y las correlaciones sin datos suficientes. RI27 prohíbe contar la ausencia de registro como inasistencia. Afecta M6-29.
+7. **Cambios en bloques utilizados:** un cambio posterior de asignatura, tipo o complejidad puede alterar la interpretación de horarios y reportes históricos. Analizar las reglas permitidas y las restricciones existentes antes de decidir cómo protegerlos, sin modificar el diseño por suposición. Afecta M6-28, M6-09 y los reportes.
 
-**M6-01 Proteger RII01 y el alta de FECHA ante concurrencia.**
+## 3. Tareas propuestas
 
-- [ ] Prueba con dos conexiones que revoca una autorización mientras se crea un horario (D8). Si se reproduce la carrera, bloquear la autorización como en la migración `Rii03Concurrencia`.
-- [ ] Alta de FECHA con `INSERT … ON CONFLICT DO NOTHING` y prueba de dos altas simultáneas de la misma fecha (D10).
+Cada tarea incluye backend, persistencia, API o frontend según corresponda, documentación de contrato y pruebas de su alcance. Las tareas que manipulan datos relacionados se verifican también ante fallos y concurrencia cuando sea pertinente.
 
-**M6-02 Completar pruebas de API y corregir documentación.**
+### A. Base e identidad
 
-- [ ] Pruebas de endpoints para personas, autorizaciones, programas y asignaturas (D12).
-- [ ] Corregir la sección final de `docs/api/contrato-api.md` y el comentario de `listarMatriculas` (D13).
-- [ ] Si el equipo decide que los perfiles son disjuntos, protegerlo también en la base de datos (D11).
+**M6-01 — Concurrencia de fechas y regresión de RII01** · D8, D10; issue #77 actualizada.
 
-**M6-03 Aplicar la zona horaria institucional.**
+- Corregir el alta concurrente de `FECHA` sin perder atomicidad; comprobar dos solicitudes con la misma fecha y el estado final en PostgreSQL.
+- Conservar y ejecutar la protección y las pruebas de #66 para RII01; probar los cambios que introduzca la generación automática y mantener los errores esperados.
 
-- [ ] Las reglas por fecha (RII01, RII02, vigencias de asignación) usan la fecha de la zona configurada, por defecto `America/Havana` (F01).
-- [ ] Pruebas con un reloj fijo a las 23:00 locales, cuando ya es el día siguiente en UTC.
+**M6-02 — Cuentas e inicio de sesión** · #67; depende de las decisiones técnicas de sesión.
 
-**M6-04 Ampliar los datos de demostración para M6.**
+- Una cuenta académica como máximo por persona, usuario único, contraseña con hash seguro y una cuenta administrativa independiente.
+- Inicialización y recuperación del administrador desde el entorno; inicio y cierre de sesión, caducidad por inactividad y cambio de contraseña.
+- Desactivación, reactivación y restablecimiento con invalidación de sesiones, incluidas sesiones ya abiertas; pruebas de credenciales y acceso.
 
-- [ ] `scripts/demo/cargar-datos-demo.mjs` carga aulas, imparticiones completas, horarios en todos los estados que se usen, asignaciones, asistencia y solicitudes.
-- [ ] Hay datos suficientes para que todos los reportes devuelvan resultados no vacíos.
-- [ ] Guion de demostración de M6, como `docs/demos/demo-m4.md`.
+**M6-03 — Panel de administración de cuentas** · #67; depende de M6-02.
 
-**M6-05 Implementar identidad y permisos.**
+- Crear persona y cuenta o vincular una cuenta a una persona existente; evitar duplicados y manejar fallos sin dejar altas parciales.
+- Consultar vínculos, restablecer contraseñas y activar o desactivar cuentas; comunicar los errores en la interfaz.
 
-- [ ] Mecanismo de identidad acordado en #67, enlazado con PERSONA y su perfil.
-- [ ] La API aplica la matriz de permisos de #67 en los endpoints existentes y en los de M6.
-- [ ] RF09: solo el creador modifica la clasificación de sus bloques.
-- [ ] Pruebas de acceso permitido y denegado por perfil.
+**M6-27 — Interfaz de acceso y sesión** · #67; depende del contrato de M6-02.
 
-El tamaño es provisional hasta cerrar #67.
+- Implementar pantallas de inicio de sesión, consulta de datos personales y cambio opcional de contraseña, cierre de sesión y manejo de credenciales inválidas, sesión vencida o cuenta desactivada.
+- Adaptar navegación y rutas a la sesión y al perfil; probar recuperación de la sesión y sus errores sin confiar en la interfaz como control de permisos.
 
-### A. Imparticiones y aulas
+**M6-04 — Permisos de API y módulos existentes** · RF09, RF26, RF29, RF45; depende de M6-02.
 
-**M6-06 Catálogo de aulas.**
+- Aplicar en backend identidad, perfiles, programa atendido y propiedad a las operaciones actuales; administrador gestiona datos generales y autorizaciones según #67.
+- Las acciones usan el actor autenticado; las consultas, totales y acceso directo a recursos respetan el alcance antes de paginar. Probar 401, 403 y suplantación por perfil.
+- Conservar RII03 y las reglas de baja al restringir la edición y asociación de bloques por su creador.
 
-- [ ] Alta, edición y listado de aulas con capacidad positiva (`CK_AULA_CapacidadPositiva`).
-- [ ] Pantalla de aulas.
+**M6-05 — Vigencias e historial de autorizaciones** · RF04, RF13, RF21, RII01, RII02; depende de M6-04 y del punto 3 de la sección 2.
 
-**M6-07 Programar imparticiones e impedir solapamientos de aula.**
+- Resolver la pérdida de permisos futuros sin invalidar generación ni validación históricas; documentar cualquier adaptación necesaria al diseño antes de aplicarla.
+- Probar vigencia inclusiva, fecha UTC, cambios concurrentes y trazabilidad de autorizaciones usadas. Generar y validar son permisos independientes.
 
-- [ ] Completar hora de inicio, hora de fin, período y aula de cada impartición, todos a la vez (D4).
-- [ ] Restricción `EXCLUDE` con `btree_gist` sobre aula, fecha e intervalo semiabierto, que admite intervalos contiguos (RII04, D9).
-- [ ] Prueba con dos conexiones que intentan solapar la misma aula.
-- [ ] Rechazo con código y mensaje propios, documentado en el contrato.
+**M6-28 — Consistencia histórica de bloques utilizados** · RF09–RF11, RF14, RF35–RF42; depende de M6-04 y del punto 7 de la sección 2.
 
-**M6-08 Consultar disponibilidad y ocupación.**
+- Analizar qué ocurre al cambiar asignatura, tipo, complejidad o descripción de un bloque usado en horarios y reportes. Definir y documentar una solución compatible con el PDF y las operaciones de #66 antes de implementarla.
+- Probar que las modificaciones permitidas conservan las reglas de programa, la interpretación de los criterios y la coherencia de los datos históricos; rechazar o gestionar las no permitidas según la solución acordada.
 
-- [ ] Ocupación de un aula por fecha y franja, y huecos libres de un horario (RF27).
-- [ ] Índices de apoyo y medición documentada del tiempo de respuesta con los datos de demostración (RNF01: menos de 1 s).
-- [ ] Caché en memoria solo si la medición la justifica.
+### B. Aulas y generación
 
-### B. Generación automática
+**M6-06 — Gestión de aulas** · RI16, §7.2.13.
 
-**M6-09 Esquema de los parámetros de generación.**
+- Alta, edición y consulta de aulas con edificio y capacidad positiva, con API y pantalla según los permisos acordados.
+- No clasificar aulas por tipo ni aplicar capacidad como límite de estudiantes; comprobar validaciones y errores.
 
-- [ ] Migración con los cambios de la sección 7 de las reglas: `cantTotalBloques`, CHECK de dominio y de "todos o ninguno".
-- [ ] Revisar los datos existentes antes de añadir los CHECK.
+**M6-07 — Imparticiones completas y protección de aulas** · RF16, RF17, RI14–RI16, RII04; depende de M6-01 y M6-06.
 
-**M6-10 Generación automática de horarios.**
+- Guardar fecha, inicio, fin, período académico y aula; cumplir la clave `(horario, bloque, fecha)` y la alternativa de aula/fecha/inicio del diseño.
+- Impedir solapamientos de aula incluso ante concurrencia; permitir intervalos contiguos. Impedir también clases solapadas en el mismo horario.
+- Probar persistencia, API y carreras con dos conexiones; no asumir que el índice único de M4 cubre todos los intervalos.
 
-- [ ] Algoritmo de las reglas G01–G25 en el dominio, determinista.
-- [ ] Endpoint que valida la autorización (RII01), comprueba las precondiciones y guarda el horario con sus parámetros en una transacción.
-- [ ] Los códigos `GENERACION_*` de la sección 2.4 de las reglas, sin persistir nada al fallar.
-- [ ] Los ejemplos E01–E08 de las reglas como pruebas automáticas.
-- [ ] Límite de tamaño o de tiempo para la búsqueda, documentado (riesgo R4).
+**M6-08 — Datos y reglas de generación semestral** · RF12, RF14, RI13; depende de la sección 2, puntos 1 y 2, y de M6-07.
 
-**M6-11 Pantalla de generación.**
+- Resolver y documentar la comprobación de cobertura y orden sin guardar la selección de candidatos, y la verificación de fechas y plantilla. Cualquier cambio del diseño requiere decisión previa.
+- Persistir los parámetros exigidos; interpretar la cantidad como imparticiones, el período como `MM-AAAA - MM-AAAA` y `periodoImp` como el mismo período. Migrar los datos y el contrato sin reinterpretar silenciosamente el conteo de M4.
+- Probar cobertura por asignatura y redondeo hacia arriba, proporciones y restos mayores, promedios y límites, orden estricto y preferencias acordadas.
 
-- [ ] Formulario con los criterios de RF12 y vista previa del resultado.
-- [ ] Mensaje claro para cada código de rechazo.
+**M6-09 — Generador automático para el semestre** · RF12–RF15; depende de M6-05, M6-07 y M6-08.
 
-### C. Revisión y validación
+- Seleccionar entre candidatos ordenados y construir espacios semanales fijos de asignatura, hora y aula, con bloques y tipos que pueden variar por semana. Repetir solo dentro de las fechas indicadas; no añadir feriados ni excepciones.
+- Aplicar cantidad, proporciones, cobertura, complejidad, orden y restricciones. Priorizar uso de candidatos y después estabilidad de tipos solo entre soluciones válidas.
+- Detectar imposibilidades y conservar atomicidad; distinguir búsqueda interrumpida de ausencia demostrada de solución. Probar criterios, claves, prioridades entre soluciones y casos imposibles; medir el comportamiento con un semestre y volumen de candidatos representativos.
 
-**M6-12 REVISION, VALIDACION y transiciones de estado.**
+**M6-10 — Crear, corregir y regenerar horarios** · RF13, RF14, RF16; depende de M6-04, M6-08 y M6-09.
 
-- [ ] Tablas REVISION y VALIDACION según 7.2.18 y 7.2.19, con las restricciones de la sección 7 de las reglas.
-- [ ] Clave foránea de `HORARIO.idRevisionOrigen` (D5) y las de ESQUEMA_LLAVE si se mantiene como tabla (D6).
-- [ ] Máquina de estados del dominio con las transiciones C01–C19, probada transición por transición.
+- API de generación y corrección por el creador autorizado; al cambiar parámetros se regenera el mismo horario y se vuelven a seleccionar y ordenar candidatos.
+- Conservar programación y parámetros válidos ante fallo; comprobar que las correcciones mantienen las reglas acordadas, una vez resueltos los puntos de la sección 2.
+- Retirar la creación manual de M4 y preparar la limpieza puntual acordada de horarios de prueba y asociaciones, sin borrar personas, programas ni bloques. No ejecutar la limpieza sobre datos no identificados como prueba.
 
-**M6-13 Revisión del jefe de departamento y regeneración.**
+**M6-11 — Pantalla de generación y consulta de horarios** · RF12–RF16; depende de los contratos de M6-09 y M6-10.
 
-- [ ] El jefe aprueba o pide regenerar con observaciones y criterios (RF18, RF19).
-- [ ] El horario regenerado queda enlazado a la revisión de origen y el anterior pasa a `RECHAZADO` (RF20).
-- [ ] No se envía a revisión un horario con imparticiones incompletas (C01).
+- Selección y orden de candidatos, franjas, fechas y parámetros; mostrar errores y resultados de criterios.
+- Presentar asignaturas por semana, con detalle de bloque y posibilidad de consultar el período. Probar estados, navegación y correcciones sin atribuirse permisos desde la interfaz.
 
-**M6-14 Validación por coordinadores.**
+**M6-12 — Disponibilidad y ocupación** · RF27, RI16, RNF01; depende de M6-04, M6-06 y M6-07.
 
-- [ ] Validación con autorización vigente y `puedeValidar` en la fecha de validación (RII02), protegida ante concurrencia igual que RII01.
-- [ ] Guarda autorización, fecha y observaciones (RF21).
+- Consultar disponibilidad y ocupación de horarios y aulas por fecha y franja sin exponer estudiantes ni asistencia.
+- Implementar índices y caché de aplicación previstos por RNF01, con invalidación cuando cambien los datos. Medir y documentar consultas concurrentes con tiempos inferiores a un segundo, cargas, resultados y entorno.
 
-**M6-15 Pantallas de revisión y validación.**
+### C. Validación, revisión y asignación
 
-- [ ] Bandeja de horarios pendientes por estado, con detalle e historial de revisiones y validaciones.
-- [ ] Acciones de aprobar, pedir regeneración y validar, con sus errores.
+**M6-13 — Validación y estados de horarios** · RF21, RF22, RI19–RI20, RII02; depende de M6-05, M6-07 y M6-10.
 
-### D. Asignación a estudiantes
+- Implementar `VALIDACION`, guardar autorización, fecha y observaciones y proteger la comprobación de RII02 ante cambios concurrentes.
+- Implementar envío a validación, devolución a `GENERADO`, cancelación autorizada y transición automática `VALIDADO` → `EN_REVISION`; congelar datos validados y proteger las transiciones ante carreras.
 
-**M6-16 Asignar horarios a estudiantes.**
+**M6-14 — Revisión del jefe y regeneración vinculada** · RF18–RF20, RF22, RI17–RI18; depende de M6-09 y M6-13.
 
-- [ ] Tabla HORARIO_ESTUDIANTE según 7.2.16.
-- [ ] Solo se asignan horarios validados a estudiantes matriculados en el programa (A01–A05).
-- [ ] RII08 protegido ante concurrencia, con prueba de dos conexiones (A06).
-- [ ] Cupo por capacidad del aula, si se acuerda P10 (sección 7.4 del diseño, A14).
+- Crear `REVISION`; registrar jefe, decisión, observaciones y criterios en texto. Aprobar o solicitar nueva generación según #71.
+- Vincular un único sustituto a cada revisión, conservar el original y cambiarlo a `RECHAZADO` solo si se genera el sustituto. Probar fallos, concurrencia y acceso de jefes.
 
-**M6-17 Consultas de horarios de estudiantes y coordinadores.**
+**M6-15 — Asignaciones y desmatriculación** · RF23–RF24, RI21, RII08; depende de M6-04, M6-14 y del punto 4 de la sección 2.
 
-- [ ] El estudiante consulta sus horarios asignados por programa (RF25).
-- [ ] El coordinador consulta los horarios de los programas que atiende (RF26), filtrados por identidad cuando exista M6-05.
+- Implementar `HORARIO_ESTUDIANTE`, asignación individual o múltiple de horarios aprobados a estudiantes matriculados y cierre con historial.
+- Impedir RII08 incluso con solicitudes concurrentes y bloquear desmatriculación con asignaciones activas. Informar resultados por estudiante sin superar el alcance del usuario.
 
-**M6-18 Pantallas de asignación y consulta.**
+**M6-16 — Pantallas de validación, revisión y asignación** · RF18–RF26; depende de los contratos de M6-13 a M6-15.
 
-- [ ] Asignación de un horario a uno o varios estudiantes, con los rechazos visibles.
-- [ ] Vista del horario asignado del estudiante.
+- Bandejas y acciones según perfil; criterios de revisión, validación, asignación múltiple y cierre. Mostrar solo operaciones permitidas, sin sustituir controles de API.
+- Mostrar horarios propios al estudiante y los del programa atendido al coordinador, incluidos los creados por otros.
 
-### E. Asistencia
+### D. Asistencia y solicitudes
 
-**M6-19 Registro de asistencia.**
+**M6-17 — Registro y consulta de asistencia** · RF28–RF29, RI25–RI27, RII05; depende de M6-04, M6-07 y M6-15.
 
-- [ ] Tabla ASISTENCIA y dominio `estadoAsistencia` (sección 7.1 del diseño).
-- [ ] Solo para imparticiones existentes y estudiantes con asignación vigente en esa fecha (RII05).
-- [ ] La falta de registro no cuenta como inasistencia (RI27).
+- Crear `ASISTENCIA` y sus cuatro estados; comprobar impartición y asignación vigente en la fecha. Un registro ausente no es una ausencia confirmada.
+- Permitir registro y modificación por coordinador del programa; consultas del propio estudiante, coordinadores autorizados y jefes. Probar filtros y acceso directo.
 
-**M6-20 Consulta de asistencia y su pantalla.**
+**M6-18 — Pantallas de asistencia** · RF28–RF29; depende del contrato de M6-17.
 
-- [ ] Consulta por estudiante, horario y bloque (RF29), con los permisos de #67.
-- [ ] Pantalla de registro y consulta.
+- Registrar, modificar y consultar por estudiante, horario y bloque; distinguir visualmente registros faltantes y estados de asistencia.
 
-### F. Solicitudes de cambio
+**M6-19 — Crear y consultar solicitudes de cambio** · RF30–RF31, RF34, RI28–RI29, RII06; depende de M6-04 y M6-15.
 
-**M6-21 Crear y consultar solicitudes de cambio.**
+- Crear `SOLICITUD_CAMBIO` y sus estados; comprobar propiedad y asignación vigente, impedir dos solicitudes activas para el mismo horario original y conservar motivo y fecha.
+- Permitir seleccionar, añadir o cambiar apoyo habilitado mientras esté pendiente o en revisión; consultar estado y resultado propios. Proteger duplicados concurrentes.
 
-- [ ] Tabla SOLICITUD_CAMBIO según 7.2.20 y dominio `estadoSolicitud`.
-- [ ] Solo sobre un horario asignado al estudiante en la fecha de la solicitud (RII06), con coordinador de apoyo opcional (RF31).
-- [ ] El estudiante consulta el estado y el resultado de sus solicitudes (RF34).
+**M6-20 — Gestionar y resolver solicitudes** · RF32–RF33, RI30–RI31, RII07–RII08; depende de M6-15 y M6-19.
 
-**M6-22 Resolver solicitudes de cambio.**
+- Permitir actuar solo al coordinador asignado o al apoyo solicitado que atienda el programa. Registrar al resolutor autenticado.
+- Implementar cancelación autorizada y motivo obligatorio para coordinador; impedir cancelar una ya resuelta y proteger carrera entre cancelación y resolución.
+- Al aprobar, cerrar la asignación anterior y crear la nueva en una transacción, conservando la relación con los horarios y comprobando conflictos. Probar fallos a mitad y concurrencia.
 
-- [ ] El coordinador resuelve con estado, fecha y resultado (RF32), con el CHECK de "pendiente sin fecha de resolución".
-- [ ] Al aprobar, cierra la asignación anterior y crea la nueva en una sola transacción, comprobando RII08 (RII07, RF33).
-- [ ] Pruebas de fallo a mitad de la transacción y de dos resoluciones simultáneas.
+**M6-21 — ESQUEMA_LLAVE y referencias restantes** · §6.9.2 y §7.2.21; depende de las relaciones de M6-13, M6-14, M6-15 y M6-19.
 
-**M6-23 Pantallas de solicitudes de cambio.**
+- Conservar la relación física y su clave. Revisar qué referencias pueden expresarse con claves completas; no asumir que una fecha aislada identifica una asignación.
+- Analizar y documentar el significado y alimentación de sus filas antes de crear operaciones o datos. Probar las restricciones efectivamente acordadas; no afirmar pérdida nula de datos reales solo porque la tabla exista.
 
-- [ ] Formulario del estudiante, bandeja del coordinador y detalle con el horario original y el resultante.
+**M6-22 — Pantallas de solicitudes** · RF30–RF34; depende de los contratos de M6-19 y M6-20.
 
-### G. Consultas y reportes
+- Formulario y consulta del estudiante; selección de apoyo; bandeja, resolución y cancelación del coordinador; mostrar resultado y motivos según el estado.
 
-**M6-24 Componentes de reportes.**
+### E. Reportes y datos históricos
 
-- [ ] Tabla con orden por cualquier columna (RF44), reutilizable en las pantallas existentes.
-- [ ] Componente de gráfico (RF43) y exportación a PDF de lo que se muestra (RF45).
+**M6-23 — Reportes de horarios y bloques** · RF35–RF37, RF39, RI32–RI34, RI36; depende de M6-09, M6-14 y M6-28.
 
-**M6-25 Reportes de horarios.**
+- Listar horarios generados por programa con creador, fecha y parámetros; bloques más impartidos en horarios finales por complejidad y asignatura; y horarios validados por coordinador con fecha y observaciones.
+- Comparar horarios de varios programas por asignatura y complejidad y sus criterios de equilibrio. Contar las imparticiones de los bloques y aplicar los permisos antes de agregar o comparar. Probar cada consulta con datos conocidos.
 
-- [ ] RF35 (horarios automáticos con creador y parámetros), RF36 (bloques más impartidos), RF37 (validados por coordinador) y RF39 (comparación entre programas).
-- [ ] Cada consulta con su prueba sobre datos conocidos.
+**M6-29 — Reportes de asistencia y desempeño** · RF38, RF40–RF42, RI35, RI37–RI39; depende de M6-17, M6-20 y M6-28.
 
-**M6-26 Reportes de asistencia.**
+- Implementar desempeño por horario y complejidad, correlación entre complejidad y asistencia por programa, los diez bloques con mayor inasistencia y la comparación de solicitantes con sus grupos en los mismos programas y períodos.
+- Documentar tasas, denominadores, tratamiento de tardanzas y ausencias justificadas, registros faltantes y correlaciones sin datos suficientes. Respetar RI27 y los permisos antes de agregar; probar cada informe con datos conocidos.
 
-- [ ] RF38 (desempeño por complejidad), RF40 (correlación complejidad–asistencia), RF41 (10 bloques con más inasistencia) y RF42 (estudiantes con solicitudes frente a su grupo).
-- [ ] Definición escrita de cada tasa y de cómo se tratan los registros que faltan (RI27).
+**M6-24 — Tablas, gráficos y exportación PDF** · RF43–RF45, RI40; depende de M6-04 y los contratos de M6-23 y M6-29.
 
-### H. Almacén analítico
+- Presentar reportes en tablas y gráficos; permitir ordenar cada columna y explicar el alcance de la ordenación si hay paginación.
+- Exportar únicamente información consultable por el usuario: vistas personales del estudiante, información académica autorizada de coordinador y jefe, e información administrativa permitida del administrador. Probar cada perfil, filtros y accesos directos.
 
-**M6-27 Almacén analítico en ClickHouse y sincronización.**
+**M6-25 — Modelo del almacén analítico** · RI41, RNF02, §7.4; depende de los contratos de datos de M6-07 y M6-17.
 
-- [ ] Esquema columnar de ocupación de aulas y asistencia por franja, edificio y período (RI41).
-- [ ] Proceso periódico idempotente: reprocesar un período no duplica filas y se registra la última actualización (sección 7.4).
-- [ ] Prueba de la sincronización con los datos de demostración.
+- Diseñar e implementar almacenamiento independiente en ClickHouse para ocupación de aulas y asistencia histórica por bloque, franja, edificio y período.
+- Documentar las claves de origen y el nivel de detalle de los datos; probar consultas agregadas sobre ejemplos conocidos y mantener desacoplado el modelo operacional.
 
-## 5. Riesgos
+**M6-30 — Sincronización del histórico analítico** · RF46, RI41, RNF02, §7.4; depende de M6-07, M6-17 y M6-25.
 
-| Id  | Riesgo                                                                                                                                                     | Respuesta propuesta                                                                                                    |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| R1  | Las fechas de M6, M7 y M8 en GitHub ya vencieron. No consta el calendario real de entrega.                                                                 | Confirmar con el profesor las fechas reales y actualizar los hitos antes de repartir.                                  |
-| R2  | M6 tiene unas 70 jornadas de trabajo y un camino crítico de unas 17. M4, con mucho menos alcance, tardó cuatro semanas más de lo previsto.                 | Ejecutar por prioridades: terminar la prioridad 1 antes de abrir la 3. Decidir pronto qué se recorta si no hay tiempo. |
-| R3  | Las decisiones abiertas (#67, P1–P14, D4/D9) bloquean todo el camino crítico.                                                                              | Cerrarlas en una sola reunión (sección 2).                                                                             |
-| R4  | La generación exige búsqueda completa (G15). En el peor caso crece de forma exponencial con el número de bloques candidatos.                               | Poda por tipo y asignatura, límite de tiempo y prueba con el mayor caso realista.                                      |
-| R5  | RII04, RII07 y RII08 requieren protección ante concurrencia, como RII03 en #54.                                                                            | Protegerlas en PostgreSQL (`EXCLUDE`, bloqueos o disparadores) y probarlas con dos conexiones.                         |
-| R6  | ClickHouse es un motor nuevo para el equipo y todavía no recibe datos.                                                                                     | Aislarlo en M6-27 y no hacer depender los reportes de él.                                                              |
-| R7  | El alcance de la identidad (#67) es desconocido y toca todos los endpoints.                                                                                | Acotar en #67 un mecanismo mínimo que baste para la evaluación.                                                        |
-| R8  | El trabajo de M4 se concentró en pocas personas. Si una sola persona lleva varias issues seguidas del camino crítico, cualquier retraso suyo para todo M6. | Repartir el camino crítico entre varias personas y acordar los contratos de API al empezar cada issue de backend.      |
+- Implementar una sincronización periódica de ocupación y asistencia que conserve la correspondencia con el origen y registre última actualización y errores.
+- Probar cargas completas, reintentos y reprocesamiento sin duplicados, fallos y consultas agregadas de los datos sincronizados.
 
-## 6. Reparto sugerido
+**M6-26 — Integración, demostración y cierre de M6** · todos los bloques; depende de las funcionalidades anteriores.
 
-**Es solo una sugerencia** basada en lo que hizo cada persona en M4. El reparto final se decide en equipo.
+- Preparar datos y recorrido reproducible por cuentas y perfiles: generación semestral, validación, revisión, asignación, asistencia, solicitud, reportes y sincronización.
+- Ejecutar pruebas de backend y frontend, integración con PostgreSQL y ClickHouse y un recorrido completo; registrar versiones, resultados, limitaciones y correcciones.
+- Contrastar RF01–RF46, RI01–RI41 aplicables, RNF01–RNF03, RII01–RII08 y los acuerdos de M5 con evidencia de implementación y prueba o demostración. RI08 no aparece en el PDF. No marcar como completo un requisito solo por existir una tabla o pantalla.
 
-| Persona                 | Issues                                   | Jornadas | Afinidad en M4                            |
-| ----------------------- | ---------------------------------------- | -------: | ----------------------------------------- |
-| Marlon Cuellar          | M6-05, M6-12, M6-13, M6-14, M6-19        |       14 | Horarios (#36), identidad (#67)           |
-| Raciel Pupo Santos      | M6-01, M6-02, M6-16, M6-17, M6-21, M6-22 |       12 | Matrículas (#37), concurrencia (#53, #54) |
-| Ramón Hernández Camacho | M6-03, M6-04, M6-06, M6-07, M6-09, M6-10 |       14 | Bloques (#38, #41)                        |
-| Charly Blanco           | M6-11, M6-15, M6-18, M6-20, M6-23        |       12 | Vistas funcionales (#18)                  |
-| Leandro Marquez         | M6-08, M6-24, M6-25, M6-26               |       13 | Diseño del frontend (#19, #59)            |
-| Sin asignar             | M6-27                                    |        5 | —                                         |
+## 4. Dependencias y orden de trabajo
 
-## 7. Pasos para cerrar #69
+1. Revisar el plan y resolver las cuestiones que afectan al diseño de generación y autorizaciones. Actualizar el calendario y revisar el reparto inicial con el equipo.
+2. Iniciar en paralelo M6-01, M6-02 y M6-06; diseñar las pantallas y contratos con los responsables de cada módulo. M6-21 requiere las tablas que faltan, aunque su análisis puede empezar antes. M6-27 puede avanzar con el contrato de sesiones.
+3. Completar permisos, aulas y reglas de impartición para habilitar el generador; después crear, corregir y consultar horarios.
+4. Construir validación y revisión, seguidas de asignaciones. Asistencia y solicitudes se apoyan en las asignaciones; reportes requieren los datos de los flujos que analizan.
+5. El diseño de ClickHouse (M6-25) puede avanzar en paralelo, pero la sincronización (M6-30) necesita sus fuentes de asistencia y ocupación. Cerrar con integración, demostración y comprobación requisito por requisito.
 
-1. Reunión de equipo: confirmar el calendario (R1), cerrar las decisiones de la sección 2 y acordar prioridades, estimaciones y responsables.
-2. Actualizar este documento con lo acordado y quitar la marca de propuesta.
-3. Crear las issues de M6 con los criterios de la sección 4, en el hito M6 y en el tablero, con su responsable y sus dependencias enlazadas.
-4. Enlazar desde aquí cada issue creada y cerrar #69.
+No se fija un camino crítico en jornadas ni se asigna una prioridad numérica definitiva sin estimaciones del equipo. El generador semestral, los permisos transversales, las restricciones concurrentes y la sincronización son riesgos de esfuerzo importantes y deben valorarse antes de repartir.
+
+## 5. Cobertura del alcance
+
+| Requisitos o reglas | Tareas |
+| --- | --- |
+| RF01–RF08, RF10–RF11 y datos maestros de M4 | Existentes; permisos en M6-04, consistencia en M6-28 y regresión en M6-26 |
+| RF09 | M6-04 y M6-28 |
+| RF12–RF17, RI12–RI16, RII01, RII03–RII04 | M6-01, M6-05 a M6-12 |
+| RF18–RF22, RI17–RI20, RII02 | M6-05, M6-13–M6-14, M6-16 |
+| RF23–RF26, RI21–RI24, RII08 | M6-15–M6-16 |
+| RF27, RNF01 | M6-12 |
+| RF28–RF29, RI25–RI27, RII05 | M6-17–M6-18 |
+| RF30–RF34, RI28–RI31, RII06–RII08 | M6-19–M6-20, M6-22 |
+| RF35–RF45, RI32–RI40 | M6-23–M6-24, M6-29 |
+| RF46, RI41, RNF02 | M6-25, M6-30 |
+| ESQUEMA_LLAVE, §6.9.2 y §7.2.21 | M6-21 |
+| RNF03, arquitectura y pruebas | Todas las tareas; integración en M6-26 |
+| Cuentas, inicio de sesión y permisos acordados en #67 | M6-02–M6-05, M6-27 |
+
+## 6. Pasos para cerrar #69
+
+1. Revisar con el equipo las tareas y resolver las cuestiones funcionales o de diseño de la sección 2.
+2. Acordar calendario, prioridades y estimaciones, y revisar el reparto inicial con el equipo; registrar los acuerdos alcanzados.
+3. Verificar que el proyecto y las issues mantengan sus dependencias y cobertura del PDF; cerrar #69 solo cuando se cumplan sus criterios.
+
+## 7. Issues de M6
+
+| Tarea | Issue | Tarea | Issue | Tarea | Issue |
+| --- | --- | --- | --- | --- | --- |
+| M6-01 | [#77](https://github.com/CuellarMarlon/timeblock/issues/77) | M6-11 | [#92](https://github.com/CuellarMarlon/timeblock/issues/92) | M6-21 | [#102](https://github.com/CuellarMarlon/timeblock/issues/102) |
+| M6-02 | [#83](https://github.com/CuellarMarlon/timeblock/issues/83) | M6-12 | [#93](https://github.com/CuellarMarlon/timeblock/issues/93) | M6-22 | [#103](https://github.com/CuellarMarlon/timeblock/issues/103) |
+| M6-03 | [#84](https://github.com/CuellarMarlon/timeblock/issues/84) | M6-13 | [#94](https://github.com/CuellarMarlon/timeblock/issues/94) | M6-23 | [#104](https://github.com/CuellarMarlon/timeblock/issues/104) |
+| M6-04 | [#85](https://github.com/CuellarMarlon/timeblock/issues/85) | M6-14 | [#95](https://github.com/CuellarMarlon/timeblock/issues/95) | M6-24 | [#105](https://github.com/CuellarMarlon/timeblock/issues/105) |
+| M6-05 | [#86](https://github.com/CuellarMarlon/timeblock/issues/86) | M6-15 | [#96](https://github.com/CuellarMarlon/timeblock/issues/96) | M6-25 | [#106](https://github.com/CuellarMarlon/timeblock/issues/106) |
+| M6-06 | [#87](https://github.com/CuellarMarlon/timeblock/issues/87) | M6-16 | [#97](https://github.com/CuellarMarlon/timeblock/issues/97) | M6-26 | [#107](https://github.com/CuellarMarlon/timeblock/issues/107) |
+| M6-07 | [#88](https://github.com/CuellarMarlon/timeblock/issues/88) | M6-17 | [#98](https://github.com/CuellarMarlon/timeblock/issues/98) | M6-27 | [#108](https://github.com/CuellarMarlon/timeblock/issues/108) |
+| M6-08 | [#89](https://github.com/CuellarMarlon/timeblock/issues/89) | M6-18 | [#99](https://github.com/CuellarMarlon/timeblock/issues/99) | M6-28 | [#109](https://github.com/CuellarMarlon/timeblock/issues/109) |
+| M6-09 | [#90](https://github.com/CuellarMarlon/timeblock/issues/90) | M6-19 | [#100](https://github.com/CuellarMarlon/timeblock/issues/100) | M6-29 | [#110](https://github.com/CuellarMarlon/timeblock/issues/110) |
+| M6-10 | [#91](https://github.com/CuellarMarlon/timeblock/issues/91) | M6-20 | [#101](https://github.com/CuellarMarlon/timeblock/issues/101) | M6-30 | [#111](https://github.com/CuellarMarlon/timeblock/issues/111) |
+
+## 8. Reparto inicial
+
+Las tareas están asignadas en GitHub. En las issues compartidas, backend y frontend coordinan el contrato y sus respectivas partes. El reparto se puede ajustar con el equipo; la cantidad de issues no equivale por sí sola al esfuerzo y todavía faltan las estimaciones.
+
+| Integrante | Área | Issues asignadas |
+| --- | --- | --- |
+| Marlon Cuellar (`CuellarMarlon`) | Backend | #83, #84, #85, #86, #89, #93, #94, #98, #110 y #107 |
+| Raciel Pupo Santos (`P57749`) | Backend | #77, #88, #96, #100, #101, #102, #109, #111 y #107 |
+| Ramón Hernández Camacho (`Ramonconda`) | Backend | #87, #90, #91, #95, #104, #105, #106 y #107 |
+| Leandro Márquez (`Leandro-Marquez`) | Frontend | #87, #92, #99, #105 y #107 |
+| Charly Blanco (`01Usuario`) | Frontend | #84, #93, #97, #103, #108 y #107 |
+
+La integración y el cierre (#107) corresponden a los cinco. Las tareas conjuntas de cuentas (#84), aulas (#87), disponibilidad (#93) y reportes/PDF (#105) combinan backend y frontend. Para avanzar en paralelo, frontend puede empezar con contratos acordados y datos simulados mientras se implementan los endpoints.
