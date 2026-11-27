@@ -1,6 +1,6 @@
 # Identidad y permisos para M6
 
-Este documento recoge los acuerdos de la [issue #67](https://github.com/CuellarMarlon/timeblock/issues/67). Se basan en el [diseño de la base de datos](Diseño%20de%20la%20Base%20de%20Datos.pdf), especialmente en RF21, RF25–RF34, RF45 y RII01–RII08.
+Este documento recoge los acuerdos de la [issue #67](https://github.com/CuellarMarlon/timeblock/issues/67). Se basan en el [diseño de la base de datos](../Diseño%20de%20la%20Base%20de%20Datos.pdf), especialmente en RF21, RF25–RF34, RF45 y RII01–RII08.
 
 Son reglas para implementar en M6, no una descripción de funcionalidades que ya estén terminadas. En M4 existen personas, perfiles y autorizaciones de coordinadores, pero la API todavía no comprueba quién envía cada solicitud. Por ejemplo, al crear un horario comprueba la autorización del `coordinadorId` recibido, pero no verifica que ese coordinador sea el usuario conectado.
 
@@ -25,7 +25,7 @@ La API debe comprobar la sesión y obtener de ella la persona que actúa. Un ide
 | **Administrador** | Gestiona personas, cuentas, programas, asignaturas, matrículas y autorizaciones de coordinadores. Puede actualizar los datos de los perfiles existentes. No genera, valida ni revisa horarios, ni registra asistencia o resuelve solicitudes. No consulta por defecto asistencia individual, solicitudes ni reportes académicos. |
 | **Estudiante** | Consulta sus datos personales, horarios asignados, asistencia y solicitudes propias. Puede crear solicitudes de cambio y consultar su resultado. También puede consultar disponibilidad general de horarios y aulas. No consulta datos individuales de otros estudiantes ni reportes agregados. |
 | **Coordinador** | Gestiona sus propios bloques y trabaja con horarios, asignaciones, asistencia, solicitudes y reportes de los programas que atiende, según las reglas de las secciones siguientes. También puede consultar disponibilidad general. |
-| **Jefe de departamento** | Consulta y revisa horarios de todos los programas. Puede consultar asistencia y reportes de todos los programas, incluidos los comparativos, para sus funciones; no registra ni modifica asistencia. Aprobará un horario o solicitará una nueva generación según el flujo que se acuerde en #71. No genera ni valida por ser jefe. |
+| **Jefe de departamento** | Consulta y revisa horarios de todos los programas. Puede consultar asistencia y reportes de todos los programas, incluidos los comparativos, para sus funciones; no registra ni modifica asistencia. Aprueba un horario o solicita una nueva generación según el [flujo de #71](reglas-negocio-m6.md). No genera ni valida por ser jefe. |
 
 El administrador modifica los datos personales; cada usuario consulta los suyos y puede cambiar su contraseña. El acceso del jefe es global por ahora: el diseño no relaciona jefes con departamentos o programas concretos. Si se necesita limitarlo en el futuro, habrá que ampliar el modelo.
 
@@ -50,7 +50,7 @@ Cuando vence o se retira una autorización, el coordinador pierde el acceso que 
 - Solo el creador puede asociar o desasociar sus bloques de programas que atienda, respetando las reglas de integridad y conservación aplicables. La asignatura del bloque debe pertenecer al programa (RII03).
 - Otros coordinadores pueden consultar y usar esos bloques en horarios de programas que atiendan, siempre que estén asociados al programa correspondiente.
 - Un coordinador que atiende el programa puede asignar sus horarios a estudiantes matriculados en él. El estudiante consulta sus asignaciones, pero no se asigna horarios por su cuenta.
-- La asignación debe respetar el estado permitido que se acuerde en #71 y las restricciones de vigencia y solapamiento del diseño (RII08).
+- Solo se asignan horarios `APROBADO`, respetando la matrícula y las restricciones de vigencia y solapamiento del diseño (RII08). El coordinador del programa puede cerrar asignaciones; antes de desmatricular deben cerrarse las asignaciones activas en ese programa.
 - Estudiantes y coordinadores pueden consultar la disponibilidad y ocupación de horarios y aulas. La consulta muestra la información necesaria —como programa, período, aula, fecha e intervalo— sin mostrar listas de estudiantes ni su asistencia.
 
 ## Asistencia
@@ -96,6 +96,6 @@ Cuando vence o se retira una autorización, el coordinador pierde el acceso que 
 
 - Implementar las cuentas, el inicio y cierre de sesión, la recuperación de la cuenta administrativa y las comprobaciones de permisos en backend y frontend. Definir la duración de inactividad y los detalles técnicos de sesión durante la implementación.
 - Actualizar el contrato de la API y los endpoints existentes cuando se aplique la identidad autenticada. El contrato de M4 describe el comportamiento anterior y no debe interpretarse como una protección ya implementada.
-- Acordar en [#71](https://github.com/CuellarMarlon/timeblock/issues/71) el ciclo de estados, el orden de revisión y validación y los estados que permiten asignar horarios.
+- Implementar el ciclo de estados, validación, revisión y asignación recogido en las [reglas de horarios de #71](reglas-negocio-m6.md).
 - Planificar y distribuir las tareas de M6 en [#69](https://github.com/CuellarMarlon/timeblock/issues/69). La concurrencia de RII01 se trata en [#77](https://github.com/CuellarMarlon/timeblock/issues/77); RII02 deberá protegerse al implementar la validación.
-- Coordinar la exportación con [#79](https://github.com/CuellarMarlon/timeblock/issues/79), aplicando los permisos acordados aquí.
+- Coordinar la implementación de reportes y exportación con la planificación de M6, aplicando los permisos acordados aquí.

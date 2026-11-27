@@ -4,6 +4,8 @@ Este documento contiene las convenciones que comparten los grupos de endpoints; 
 
 **Estado:** borrador para revisión conjunta de backend y frontend. Las decisiones de IDs, perfiles, normalización de bloques, autorización para horarios y autenticación ya fueron acordadas. Las convenciones HTTP, paginación y formas exactas de los DTO deben mantenerse sincronizadas con OpenAPI durante la implementación.
 
+Este contrato describe la API de M4. Los [acuerdos de identidad](../reglas/identidad-y-permisos-m6.md) y las [reglas de horarios de M6](../reglas/reglas-negocio-m6.md) aún no están implementados; al hacerlo deberán actualizarse las rutas, los campos y los errores correspondientes.
+
 ## Convenciones
 
 - Prefijo: `/api`.

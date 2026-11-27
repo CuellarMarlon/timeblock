@@ -4,6 +4,8 @@ Propuesta de la issue #69 para convertir la revisión de M5 en un plan de ejecuc
 
 **Estado: propuesta.** Las prioridades, estimaciones y responsables se deben acordar en equipo. Las issues de GitHub se crearán después de ese acuerdo, con el texto de la sección 4.
 
+**Aviso de actualización:** este plan conserva la propuesta hecha sobre la versión indicada abajo y todavía no incorpora los acuerdos posteriores de [identidad y permisos](../reglas/identidad-y-permisos-m6.md), las [reglas de horarios revisadas](../reglas/reglas-negocio-m6.md) ni el cierre de #66. Sus referencias a P1–P14, al horario manual y al orden de revisión y validación están desactualizadas. Las estimaciones, dependencias, prioridades y tareas deben rehacerse en #69; no utilizar la sección 4 como contrato definitivo.
+
 ## 1. Punto de partida
 
 | Dato                       | Valor                                                                                                                                                                  |

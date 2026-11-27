@@ -1,6 +1,8 @@
 # Bajas y eliminación en M4
 
-Acuerdos para la [issue #66](https://github.com/CuellarMarlon/timeblock/issues/66), a partir del [diseño de la base de datos](../Diseño%20de%20la%20Base%20de%20Datos.pdf) y del modelo actual de M4. Estas reglas deben implementarse y probarse como parte de la issue.
+Acuerdos de la [issue #66](https://github.com/CuellarMarlon/timeblock/issues/66), a partir del [diseño de la base de datos](../Diseño%20de%20la%20Base%20de%20Datos.pdf) y del alcance de M4. La issue se cerró tras integrar su implementación en el PR #81.
+
+**Evolución para M6:** se acordó cerrar las asignaciones activas de un estudiante antes de desmatricularlo y conservar su historial. También se acordó una limpieza puntual de los horarios de prueba de M4 al pasar a generación automática; eso no añade una operación general para borrar horarios históricos de M6. Véanse las [reglas de horarios](../reglas/reglas-negocio-m6.md).
 
 ## Matrículas
 

@@ -4,10 +4,9 @@ Sistema web para la gestión, generación y análisis de horarios docentes.
 
 ## Estado del proyecto
 
-El repositorio contiene la estructura inicial del backend y el frontend, además
-del entorno local de PostgreSQL y ClickHouse. La conexión del backend con
-PostgreSQL, las migraciones y las funcionalidades del sistema se implementarán
-en las siguientes etapas. ClickHouse todavía no recibe datos de la aplicación.
+M4 cuenta con backend, frontend, persistencia en PostgreSQL y migraciones para
+los flujos básicos. La generación automática, las funciones restantes y los
+reportes se abordarán en M6. ClickHouse todavía no recibe datos de la aplicación.
 
 ## Tecnologías
 
@@ -21,6 +20,8 @@ en las siguientes etapas. ClickHouse todavía no recibe datos de la aplicación.
 
 La arquitectura y las responsabilidades de cada componente están descritas en
 [`docs/arquitectura.md`](docs/arquitectura.md).
+El [índice de documentación](docs/README.md) reúne el diseño, los acuerdos y las
+revisiones del proyecto.
 
 ## Requisitos
 

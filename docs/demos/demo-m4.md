@@ -1,6 +1,8 @@
 # Demostración del recorrido funcional de M4
 
-Guion reproducible para la issue #70: muestra el núcleo implementado en M4 desde la interfaz hasta PostgreSQL, sus rechazos y lo que queda pendiente. El recorrido es el mismo que verificó #40.
+Guion reproducible preparado en el [PR #75](https://github.com/CuellarMarlon/timeblock/pull/75): muestra el núcleo implementado en M4 desde la interfaz hasta PostgreSQL, sus rechazos y lo que queda pendiente. El recorrido es el mismo que verificó #40. El PR lo relaciona con #70, cuya issue no se pudo consultar al revisar esta documentación.
+
+**Estado del documento:** guion y ensayo de la versión indicada, no demostración de M6. La issue #66 y sus bajas se integraron después; los acuerdos de #67 y #71 todavía requieren implementación. En M6 se acordó retirar el alta manual de horarios y eliminar los horarios de prueba de M4, por lo que este guion y su script deberán adaptarse antes de usarse con ese alcance. La presentación y sus observaciones siguen sin constar en la sección 6.
 
 | Dato                  | Valor                                               |
 | --------------------- | --------------------------------------------------- |

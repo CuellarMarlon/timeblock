@@ -95,4 +95,4 @@ para atender consultas analíticas sobre el histórico. El modelo histórico y e
 mecanismo para alimentar ClickHouse se definirán durante la implementación.
 
 Los acuerdos de identidad, cuentas y permisos previstos para M6 se recogen en
-[Identidad y permisos para M6](identidad-y-permisos-m6.md).
+[Identidad y permisos para M6](reglas/identidad-y-permisos-m6.md).

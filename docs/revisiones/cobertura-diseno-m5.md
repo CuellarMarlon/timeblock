@@ -14,6 +14,8 @@ Revisión del informe [Diseño de la Base de Datos](../Diseño%20de%20la%20Base%
 
 No incluye el PR #72 (#65, selectores de matrícula), que estaba en revisión.
 
+**Lectura posterior:** esta es una fotografía de la versión indicada, no un inventario actualizado del código. Después se integraron los cambios de #65 y #66, incluidos selectores y operaciones de baja; las afirmaciones de esta revisión sobre su ausencia corresponden a la fecha revisada. Los acuerdos posteriores de [identidad y permisos](../reglas/identidad-y-permisos-m6.md) y [reglas de horarios](../reglas/reglas-negocio-m6.md) son decisiones para M6, no implementación ya cubierta. El plan de #69 debe volver a comprobar el estado actual antes de repartir tareas.
+
 ## Cómo se clasificó
 
 | Estado           | Significado                                                                                              |
@@ -28,7 +30,7 @@ La columna **Verificación** distingue lo implementado de lo comprobado:
 - **Pruebas automáticas:** hay pruebas que pasan en esta revisión y cubren la regla. Se indica en qué capa: dominio, aplicación, BD (integración con PostgreSQL), API o frontend.
 - **Sin prueba específica:** la funcionalidad existe, pero ninguna prueba la comprueba directamente.
 
-Ninguna prueba recorre la aplicación completa desde la interfaz hasta PostgreSQL. Las pruebas del frontend simulan la API, así que esa verificación de extremo a extremo queda para la demostración de #70.
+Ninguna prueba recorre la aplicación completa desde la interfaz hasta PostgreSQL. Las pruebas del frontend simulan la API, así que esa verificación de extremo a extremo queda para la [demostración de M4](../demos/demo-m4.md).
 
 ## Resumen
 
@@ -143,7 +145,7 @@ La comprobación de aforo de la sección 7.4 también está pendiente.
 | D3  | Los parámetros de generación admiten nulos y `nivelComplejidadHorario` no tiene CHECK de dominio.                                                                                                                                                                                                                                     | Definir su dominio y cuándo son obligatorios al implementar la generación (#71).                                                                   |
 | D4  | El diseño exige hora, período y aula en BLOQUE_EN_HORARIO. M4 los deja nulos (decisión 6 del contrato) y el dominio de `periodoImp` no está definido.                                                                                                                                                                                 | Definir el dominio de `periodoImp` y hacer obligatoria la impartición completa cuando se programe.                                                 |
 | D5  | `HORARIO.idRevisionOrigen` existe sin clave foránea, porque REVISION no existe.                                                                                                                                                                                                                                                       | Añadir la clave foránea al crear REVISION.                                                                                                         |
-| D6  | ESQUEMA_LLAVE (R16) existe para justificar la pérdida nula de unión, pero la aplicación nunca escribe en ella y le faltan tres claves foráneas. Solo la rellena una prueba de persistencia.                                                                                                                                           | Decidir si se mantiene como tabla física (y cómo se rellena) o se documenta como relación teórica.                                                 |
+| D6  | ESQUEMA_LLAVE (R16) existe para justificar la pérdida nula de unión, pero la aplicación nunca escribe en ella y le faltan tres claves foráneas. Solo la rellena una prueba de persistencia.                                                                                                                                           | Conservarla como relación física según el PDF (§6.9.2 y §7.2.21); completar sus referencias y analizar cómo se alimenta al incorporar las relaciones faltantes. |
 | D7  | El diseño define la duplicidad por `(idAsignatura, tipoActividad, descripcion)`. La implementación normaliza la descripción (espacios y mayúsculas), lo que es más estricto. Está documentado en el contrato, pero no en el PDF.                                                                                                      | Actualizar el texto del diseño si se vuelve a entregar.                                                                                            |
 | D8  | RII01 se comprueba sin bloquear la autorización. Si otra transacción la revoca a la vez, podría crearse un horario con una autorización ya revocada, la misma clase de carrera que se corrigió para RII03 en #54. **No se ha reproducido.**                                                                                           | Añadir una prueba con dos conexiones y, si falla, bloquear la autorización como en RII03.                                                          |
 | D9  | RII04 no está protegido: el índice único por inicio no detecta intervalos solapados.                                                                                                                                                                                                                                                  | Usar una restricción `EXCLUDE` con `btree_gist` sobre `(idAula, fecha, tsrange)` o un disparador. La restricción también resuelve la concurrencia. |
@@ -158,7 +160,7 @@ La comprobación de aforo de la sección 7.4 también está pendiente.
 
 1. Qué significa `cantTotalBloques` y cuáles son los dominios de los parámetros de generación (D2, D3; #71).
 2. Cuál es el dominio de `periodoImp` y cómo se representan los intervalos para RII04 (D4, D9).
-3. Si ESQUEMA_LLAVE se mantiene como tabla física (D6).
+3. Cómo se alimenta ESQUEMA_LLAVE, que el PDF mantiene como tabla física (D6).
 4. Si los perfiles son disjuntos también en la base de datos (D11).
 5. Qué operaciones de baja existen por entidad (D14; #66).
 6. Cómo se identifica a los usuarios y qué permisos tienen (D15; #67).
