@@ -93,3 +93,6 @@ incorporen sus primeros archivos.
 PostgreSQL será la fuente operacional del sistema. ClickHouse estará separado
 para atender consultas analíticas sobre el histórico. El modelo histórico y el
 mecanismo para alimentar ClickHouse se definirán durante la implementación.
+
+Los acuerdos de identidad, cuentas y permisos previstos para M6 se recogen en
+[Identidad y permisos para M6](identidad-y-permisos-m6.md).
