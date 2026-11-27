@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Timeblock.Api.Contracts.Bloques;
+using Timeblock.Api.Contracts.Common;
 using Timeblock.Application.Bloques;
 using Timeblock.Application.Common.Pagination;
 using Timeblock.Domain.Bloques;
@@ -81,6 +82,33 @@ public sealed class BloquesController(BloquesService bloques) : ControllerBase
         CancellationToken ct)
     {
         await bloques.AsociarProgramaAsync(bloqueId, programaId, ct);
+        return NoContent();
+    }
+    [HttpPut("{bloqueId:guid}/estado")]
+    [ProducesResponseType<BloqueResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BloqueResponse>> CambiarEstado(Guid bloqueId, ActualizarEstadoRequest request, CancellationToken ct) =>
+        Ok(BloqueResponse.FromDomain(await bloques.CambiarEstadoAsync(bloqueId, request.Activo, ct)));
+
+    [HttpDelete("{bloqueId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Eliminar(Guid bloqueId, CancellationToken ct)
+    {
+        await bloques.EliminarAsync(bloqueId, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("{bloqueId:guid}/programas/{programaId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DesasociarPrograma(Guid bloqueId, Guid programaId, CancellationToken ct)
+    {
+        await bloques.DesasociarProgramaAsync(bloqueId, programaId, ct);
         return NoContent();
     }
 }

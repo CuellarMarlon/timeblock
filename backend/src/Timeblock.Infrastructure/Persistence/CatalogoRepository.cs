@@ -32,6 +32,18 @@ public sealed class CatalogoRepository(TimeblockDbContext db) : ICatalogoReposit
 
     public Task GuardarProgramaAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
 
+    public async Task<bool> EliminarProgramaAsync(Guid programaId, CancellationToken ct)
+    {
+        try
+        {
+            return await db.Programas.Where(p => p.Id == programaId).ExecuteDeleteAsync(ct) > 0;
+        }
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.ForeignKeyViolation or "23001")
+        {
+            throw new ResourceConflictException("No se puede eliminar el programa porque tiene registros relacionados.", ex);
+        }
+    }
+
     public async Task AgregarAsignaturaAsync(Asignatura asignatura, CancellationToken ct)
     {
         db.Asignaturas.Add(asignatura);
@@ -54,6 +66,18 @@ public sealed class CatalogoRepository(TimeblockDbContext db) : ICatalogoReposit
     }
 
     public Task GuardarAsignaturaAsync(CancellationToken ct) => db.SaveChangesAsync(ct);
+
+    public async Task<bool> EliminarAsignaturaAsync(Guid asignaturaId, CancellationToken ct)
+    {
+        try
+        {
+            return await db.Asignaturas.Where(a => a.Id == asignaturaId).ExecuteDeleteAsync(ct) > 0;
+        }
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.ForeignKeyViolation or "23001")
+        {
+            throw new ResourceConflictException("No se puede eliminar la asignatura porque tiene registros relacionados.", ex);
+        }
+    }
 
     public Task<bool> ExisteProgramaAsync(Guid id, CancellationToken ct) =>
         db.Programas.AnyAsync(x => x.Id == id, ct);
@@ -84,6 +108,24 @@ public sealed class CatalogoRepository(TimeblockDbContext db) : ICatalogoReposit
                 .Single(entry => entry.State == EntityState.Added).Entity).State = EntityState.Detached;
             if (!await EstaAsociadaAsync(programaId, asignaturaId, ct))
                 throw new ResourceConflictException("No se pudo crear la asociación por un conflicto de unicidad.", ex);
+        }
+    }
+
+    public async Task<bool> DesasociarAsync(Guid programaId, Guid asignaturaId, CancellationToken ct)
+    {
+        try
+        {
+            int eliminadas = await db.ProgramasAsignaturas
+                .Where(x => x.ProgramaId == programaId && x.AsignaturaId == asignaturaId)
+                .ExecuteDeleteAsync(ct);
+            return eliminadas > 0;
+        }
+        catch (PostgresException ex) when (
+            ex.SqlState == PostgresErrorCodes.CheckViolation &&
+            ex.MessageText.StartsWith("RII03:", StringComparison.Ordinal))
+        {
+            throw new ResourceConflictException(
+                "No se puede quitar la asignatura del programa mientras tenga bloques asociados.", ex);
         }
     }
 

@@ -56,6 +56,22 @@ describe("createApiClient", () => {
     await expect(client.put("/api/programas/1/asignaturas/2")).resolves.toBeUndefined();
   });
 
+  it("envía DELETE sin cuerpo y acepta una respuesta 204", async () => {
+    const { client, fetchMock } = clientWith(new Response(null, { status: 204 }));
+
+    await expect(
+      client.delete("/api/programas/p1/matriculas/e1"),
+    ).resolves.toBeUndefined();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://api.test/api/programas/p1/matriculas/e1",
+      expect.objectContaining({
+        method: "DELETE",
+        body: undefined,
+      }),
+    );
+  });
+
   it("lanza ApiError con el Problem Details de la respuesta", async () => {
     const problema = {
       type: "about:blank",

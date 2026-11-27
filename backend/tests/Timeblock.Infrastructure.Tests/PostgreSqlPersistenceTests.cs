@@ -94,6 +94,8 @@ public sealed class PostgreSqlPersistenceTests
             coordinadorId);
         bloque.AsociarPrograma(programa);
         context.Bloques.Add(bloque);
+        // La asociación debe existir antes de insertar un bloque en un horario.
+        await context.SaveChangesAsync();
 
         var horario = Horario.Crear(
             horarioId,

@@ -12,6 +12,7 @@ public sealed class ProgramaAcademicoConfiguration
         builder.ToTable("PROGRAMA_ACADEMICO");
 
         builder.HasKey(programa => programa.Id);
+        builder.Property(programa => programa.Activo).HasColumnName("activo").HasDefaultValue(true);
 
         builder.Property(programa => programa.Id)
             .HasColumnName("idPrograma")

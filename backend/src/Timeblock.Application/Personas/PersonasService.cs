@@ -28,6 +28,21 @@ public sealed class PersonasService(IPersonaRepository personas)
     public async Task<Persona> ObtenerAsync(Guid id, CancellationToken ct) =>
         await personas.ObtenerAsync(id, ct) ?? throw new ResourceNotFoundException($"No existe la persona '{id}'.");
 
+    public async Task EliminarAsync(Guid id, CancellationToken ct)
+    {
+        if (id == Guid.Empty) throw new InvalidRequestException("El identificador de la persona no es válido.");
+        if (!await personas.EliminarAsync(id, ct))
+            throw new ResourceNotFoundException($"No existe la persona '{id}'.");
+    }
+
+    public async Task<Persona> CambiarEstadoAsync(Guid id, bool activo, CancellationToken ct)
+    {
+        var persona = await ObtenerAsync(id, ct);
+        persona.CambiarEstado(activo);
+        await personas.GuardarCambiosAsync(persona, ct);
+        return persona;
+    }
+
     public Task<PagedResult<Persona>> ListarAsync(PersonaFilter filter, CancellationToken ct)
     {
         ValidarPaginacion(filter.Page, filter.PageSize);
@@ -100,6 +115,15 @@ public sealed class PersonasService(IPersonaRepository personas)
         catch (DomainException ex) { throw new InvalidRequestException(ex.Message, ex); }
         await personas.GuardarAutorizacionAsync(autorizacion, ct);
         return autorizacion;
+    }
+
+    public async Task EliminarAutorizacionAsync(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken ct)
+    {
+        if (coordinadorId == Guid.Empty || programaId == Guid.Empty)
+            throw new InvalidRequestException("Los identificadores de coordinador y programa deben ser válidos.");
+
+        if (!await personas.EliminarAutorizacionAsync(coordinadorId, programaId, fechaInicio, ct))
+            throw new ResourceNotFoundException("No existe la autorización indicada.");
     }
 
     private async Task<PerfilEstudiante> CrearEstudianteAsync(PerfilEstudianteCrearCommand p, CancellationToken ct)

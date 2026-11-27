@@ -15,7 +15,11 @@ Este documento contiene las convenciones que comparten los grupos de endpoints; 
 - En los listados se propone usar `page` (por defecto `1`) y `pageSize` (por defecto `20`, máximo `100`).
 - Las operaciones de creación responden `201 Created`, con el recurso creado y su URI en `Location`.
 - Consultas y actualizaciones correctas responden `200 OK`; las asociaciones `PUT` idempotentes pueden responder `204 No Content`.
-- No se definen operaciones `DELETE` de recursos principales; las reglas de baja y conservación se decidirán antes de necesitarlas.
+- Las bajas y eliminaciones de M4 se detallan en [los acuerdos de la issue #66](../revisiones/bajas-y-eliminacion-m4.md) y en los documentos de cada módulo.
+
+## Estado de registros
+
+Personas, programas, asignaturas y bloques incluyen `activo` en sus respuestas y se crean activos. Cada recurso admite `PUT /api/{recurso}/{id}/estado` con cuerpo `{"activo": false}` para inactivar o `{"activo": true}` para reactivar. Las consultas conservan los registros inactivos para permitir el acceso a sus relaciones anteriores. Las nuevas relaciones con registros inactivos se rechazan con `409`; inactivar no elimina ni modifica relaciones existentes.
 
 ## Errores
 
@@ -99,9 +103,9 @@ No incluye generación automática, completar horas/periodo/aula de las impartic
 
 Las convenciones de rutas, paginación y códigos de respuesta se deben mantener sincronizadas con el documento OpenAPI cuando se implementen los endpoints.
 
-# Matrículas: endpoints que el frontend asume
+# Matrículas
 
-## GET /api/matriculas (pendiente de implementar)
+## GET /api/matriculas
 
 Lista todas las matrículas con filtros opcionales y paginación.
 
@@ -118,9 +122,6 @@ Respuesta `200`: `PagedResult<MatriculaResponse>`
 (`items`, `page`, `pageSize`, `totalItems`), con
 `MatriculaResponse = { estudianteId, programaId }`.
 
-## Edición de matrículas (pendiente de decisión)
+## Corrección y baja de matrículas
 
-El diseño incluye "editar matrícula" (cambiar estudiante o programa), pero el
-contrato no permite modificar ni eliminar una matrícula. Hace falta
-`DELETE /api/programas/{programaId}/matriculas/{estudianteId}` (y/o un `PUT`).
-Hasta entonces el frontend no muestra el botón de editar.
+Se puede desmatricular con `DELETE /api/programas/{programaId}/matriculas/{estudianteId}` y matricular nuevamente a la pareja correcta. Son operaciones independientes: no existe un cambio de matrícula atómico ni se conserva historial de bajas en M4.

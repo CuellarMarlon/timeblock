@@ -31,6 +31,11 @@ export interface Persona {
   id: string;
   nombre: string;
   perfil: Perfil;
+  activo?: boolean;
+}
+
+export function cambiarEstadoPersona(id: string, activo: boolean) {
+  return apiClient.put<Persona>(`/api/personas/${id}/estado`, { activo });
 }
 
 /** Datos para crear una persona con su perfil. */
@@ -82,6 +87,11 @@ export function obtenerPersona(id: string, signal?: AbortSignal) {
   return apiClient.get<Persona>(`/api/personas/${id}`, { signal });
 }
 
+/** Elimina una persona con su perfil si no tiene dependencias. */
+export function eliminarPersona(id: string) {
+  return apiClient.delete<void>(`/api/personas/${id}`);
+}
+
 /** Crea una persona con su perfil. */
 export function crearPersona(input: PersonaInput) {
   return apiClient.post<Persona>("/api/personas", input);
@@ -119,5 +129,16 @@ export function actualizarAutorizacion(
   return apiClient.put<Autorizacion>(
     `/api/coordinadores/${coordinadorId}/autorizaciones/${programaId}/${fechaInicio}`,
     input,
+  );
+}
+
+/** Elimina una autorización identificada por coordinador, programa y fecha de inicio. */
+export function eliminarAutorizacion(
+  coordinadorId: string,
+  programaId: string,
+  fechaInicio: string,
+) {
+  return apiClient.delete<void>(
+    `/api/coordinadores/${coordinadorId}/autorizaciones/${programaId}/${fechaInicio}`,
   );
 }

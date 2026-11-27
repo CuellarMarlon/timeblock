@@ -34,6 +34,30 @@ public sealed class CatalogoService(ICatalogoRepository catalogo) : ICasoDeUso
         return programa;
     }
 
+    public async Task EliminarProgramaAsync(Guid programaId, CancellationToken cancellationToken)
+    {
+        if (programaId == Guid.Empty)
+            throw new InvalidRequestException("El identificador del programa no es válido.");
+        if (!await catalogo.EliminarProgramaAsync(programaId, cancellationToken))
+            throw new ResourceNotFoundException($"No existe el programa '{programaId}'.");
+    }
+
+    public async Task<ProgramaAcademico> CambiarEstadoProgramaAsync(Guid id, bool activo, CancellationToken ct)
+    {
+        var programa = await ObtenerProgramaAsync(id, ct);
+        programa.CambiarEstado(activo);
+        await catalogo.GuardarProgramaAsync(ct);
+        return programa;
+    }
+
+    public async Task<Asignatura> CambiarEstadoAsignaturaAsync(Guid id, bool activo, CancellationToken ct)
+    {
+        var asignatura = await ObtenerAsignaturaAsync(id, ct);
+        asignatura.CambiarEstado(activo);
+        await catalogo.GuardarAsignaturaAsync(ct);
+        return asignatura;
+    }
+
     public async Task<PagedResult<Asignatura>> ListarAsignaturasDeProgramaAsync(
         Guid programaId, int? page, int? pageSize, CancellationToken cancellationToken)
     {
@@ -67,6 +91,14 @@ public sealed class CatalogoService(ICatalogoRepository catalogo) : ICasoDeUso
         return asignatura;
     }
 
+    public async Task EliminarAsignaturaAsync(Guid asignaturaId, CancellationToken cancellationToken)
+    {
+        if (asignaturaId == Guid.Empty)
+            throw new InvalidRequestException("El identificador de la asignatura no es válido.");
+        if (!await catalogo.EliminarAsignaturaAsync(asignaturaId, cancellationToken))
+            throw new ResourceNotFoundException($"No existe la asignatura '{asignaturaId}'.");
+    }
+
     public async Task AsociarAsignaturaAsync(
         Guid programaId, Guid asignaturaId, CancellationToken cancellationToken)
     {
@@ -80,6 +112,15 @@ public sealed class CatalogoService(ICatalogoRepository catalogo) : ICasoDeUso
             return;
 
         await catalogo.AsociarAsync(programaId, asignaturaId, cancellationToken);
+    }
+
+    public async Task DesasociarAsignaturaAsync(Guid programaId, Guid asignaturaId, CancellationToken cancellationToken)
+    {
+        if (programaId == Guid.Empty || asignaturaId == Guid.Empty)
+            throw new InvalidRequestException("Los identificadores de programa y asignatura deben ser válidos.");
+
+        if (!await catalogo.DesasociarAsync(programaId, asignaturaId, cancellationToken))
+            throw new ResourceNotFoundException("No existe una asociación entre ese programa y esa asignatura.");
     }
 
     private static PageRequest CrearPagina(int? page, int? pageSize)

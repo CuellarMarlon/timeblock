@@ -8,17 +8,20 @@ export interface Programa {
   id: string;
   nombre: string;
   planEstudio: string;
+  activo?: boolean;
 }
 
 export interface Asignatura {
   id: string;
   nombre: string;
+  activo?: boolean;
 }
 
 // Persona con perfil de coordinador. Guardamos solo lo que usan los selectores
 export interface Coordinador {
   id: string;
   nombre: string;
+  activo?: boolean;
 }
 
 // Datos de apoyo para llenar los selectores y mostrar nombres en vez de ids
@@ -51,11 +54,17 @@ export async function cargarCatalogos(signal?: AbortSignal): Promise<Catalogos> 
     programas: programas.items,
     asignaturas: asignaturas.items,
     // De cada persona solo hacen falta el id y el nombre
-    coordinadores: coordinadores.items.map(({ id, nombre }) => ({ id, nombre })),
+    coordinadores: coordinadores.items.map(({ id, nombre, activo }) => ({ id, nombre, activo })),
   };
 }
 
 // Busca el nombre por id. Si no lo encuentra, devuelve el id tal cual
-export function nombreDe(lista: { id: string; nombre: string }[], id: string): string {
-  return lista.find((elemento) => elemento.id === id)?.nombre ?? id;
+export function nombreDe(
+  lista: { id: string; nombre: string; activo?: boolean }[],
+  id: string,
+): string {
+  const encontrado = lista.find((elemento) => elemento.id === id);
+  return encontrado
+    ? `${encontrado.nombre}${encontrado.activo === false ? " (inactivo)" : ""}`
+    : id;
 }

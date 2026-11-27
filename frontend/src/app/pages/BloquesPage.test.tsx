@@ -68,6 +68,12 @@ describe("BloquesPage", () => {
     expect(fila).toHaveTextContent("Ingeniería Informática");
   });
 
+  it("identifica los bloques inactivos en el listado", async () => {
+    mocks.listarBloques.mockResolvedValue(pagina([{ ...bloque, activo: false }]));
+    renderPagina();
+    expect(await screen.findByRole("row", { name: /Derivadas.*inactivo/ })).toBeInTheDocument();
+  });
+
   it("muestra el estado vacío", async () => {
     mocks.listarBloques.mockResolvedValue(pagina([]));
     renderPagina();

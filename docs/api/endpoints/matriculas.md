@@ -12,6 +12,7 @@ M4 registra la relación de un estudiante con un programa. Las asignaciones de h
 | `POST /api/programas/{programaId}/matriculas` | Matricula un estudiante en el programa. |
 | `GET /api/programas/{programaId}/matriculas` | Lista estudiantes matriculados. |
 | `GET /api/estudiantes/{estudianteId}/matriculas` | Lista programas donde está matriculado el estudiante. |
+| `DELETE /api/programas/{programaId}/matriculas/{estudianteId}` | Desmatricula al estudiante del programa. |
 
 Crear matrícula:
 
@@ -47,5 +48,9 @@ Respuesta `201 Created`:
 - `400`: falta `estudianteId` o no tiene formato UUID.
 - `404`: estudiante, perfil o programa inexistente.
 - `409`: el estudiante ya está matriculado en ese programa.
+- `204`: matrícula eliminada correctamente; no se devuelve cuerpo.
+- `404`: la matrícula indicada no existe.
 
-En M4 no se definen fechas de baja, estado histórico de matrícula ni operaciones de desmatriculación.
+En M4 se puede desmatricular eliminando la relación entre estudiante y programa.
+La operación no elimina al estudiante ni al programa y permite volver a matricular
+a la misma pareja. No se conservan fechas ni historial de bajas de matrícula.

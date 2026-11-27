@@ -10,6 +10,7 @@ public sealed class PersonaRecord
     public Guid IdPersona { get; set; }
 
     public string NombrePersona { get; set; } = string.Empty;
+    public bool Activo { get; set; } = true;
 }
 
 /// <summary>

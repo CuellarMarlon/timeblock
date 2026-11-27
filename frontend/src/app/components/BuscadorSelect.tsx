@@ -8,6 +8,7 @@ import "./BuscadorSelect.css";
 export interface OpcionBuscable {
   id: string;
   nombre: string;
+  activo?: boolean;
 }
 
 /** Consulta a la API los registros cuyo nombre contiene el texto indicado. */
@@ -92,8 +93,9 @@ export function BuscadorSelect({
     >
       <option value="">{placeholder}</option>
       {opciones.map((o) => (
-        <option key={o.id} value={o.id}>
+        <option key={o.id} value={o.id} disabled={variant === "field" && o.activo === false}>
           {o.nombre}
+          {o.activo === false ? " (inactivo)" : ""}
         </option>
       ))}
     </select>

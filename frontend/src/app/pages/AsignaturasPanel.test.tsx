@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as api from "../../api/program";
+import { ApiError } from "../../api/errors";
 import { AsignaturasPanel } from "./AsignaturasPanel";
 
 vi.mock("../../api/program");
@@ -75,5 +76,50 @@ describe("AsignaturasPanel", () => {
 
     await waitFor(() => expect(mocked.asociarAsignatura).toHaveBeenCalledWith("p1", "a1"));
     expect(await screen.findByText("Asignatura asociada correctamente.")).toBeInTheDocument();
+  });
+
+  it("permite cancelar la eliminación", async () => {
+    const user = userEvent.setup();
+    render(<AsignaturasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Bases de Datos" }));
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(mocked.eliminarAsignatura).not.toHaveBeenCalled();
+  });
+
+  it("elimina una asignatura y recarga el listado", async () => {
+    mocked.eliminarAsignatura.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<AsignaturasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Bases de Datos" }));
+    mocked.listarAsignaturas.mockResolvedValue(pagina([]));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(mocked.eliminarAsignatura).toHaveBeenCalledWith("a1");
+    expect(await screen.findByText("Asignatura eliminada correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Todavía no hay asignaturas registradas.")).toBeInTheDocument();
+  });
+
+  it("muestra el conflicto si tiene dependencias", async () => {
+    mocked.eliminarAsignatura.mockRejectedValue(
+      new ApiError(409, { detail: "La asignatura tiene registros relacionados." }),
+    );
+    const user = userEvent.setup();
+    render(<AsignaturasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Bases de Datos" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(
+      await screen.findByText("La asignatura tiene registros relacionados."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("mantiene el modal abierto durante la eliminación", async () => {
+    mocked.eliminarAsignatura.mockReturnValue(new Promise<void>(() => {}));
+    const user = userEvent.setup();
+    render(<AsignaturasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Bases de Datos" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(screen.getByRole("button", { name: "Eliminando…" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });

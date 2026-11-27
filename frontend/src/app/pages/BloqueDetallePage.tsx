@@ -1,7 +1,10 @@
 import { useCallback, useId, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   asociarBloqueAPrograma,
+  desasociarBloqueDePrograma,
+  cambiarEstadoBloque,
+  eliminarBloque,
   etiquetaNivelComplejidad,
   etiquetaTipoActividad,
   obtenerBloque,
@@ -11,6 +14,8 @@ import { CATALOGOS_VACIOS, cargarCatalogos, nombreDe, type Catalogos } from "../
 import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
 import { ErrorMessage } from "../components/ErrorMessage";
+import { EstadoEntidad } from "../components/EstadoEntidad";
+import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { SelectField } from "../components/SelectField";
 import { SuccessMessage } from "../components/SuccessMessage";
@@ -22,6 +27,7 @@ export function BloqueDetallePage() {
   const headingId = useId();
   const { bloqueId = "" } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   // Aviso que manda el formulario después de crear o editar el bloque
   const avisoInicial = (location.state as { aviso?: string } | null)?.aviso;
 
@@ -34,13 +40,56 @@ export function BloqueDetallePage() {
   // La mutación se queda aquí y no en el detalle: al recargar el bloque el detalle
   // se vuelve a montar y se perdería el aviso de éxito
   const asociar = useApiMutation(asociarBloqueAPrograma);
+  const desvincular = useApiMutation(desasociarBloqueDePrograma);
+  const eliminar = useApiMutation(eliminarBloque);
+  const [confirmarBloque, setConfirmarBloque] = useState(false);
   const [asociado, setAsociado] = useState<string | null>(null);
+  const [desvinculado, setDesvinculado] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<{ id: string; nombre: string } | null>(null);
+  const desvinculando = desvincular.state.status === "loading";
+  const eliminando = eliminar.state.status === "loading";
+
+  function cerrarEliminar() {
+    if (eliminando) return;
+    setConfirmarBloque(false);
+    eliminar.reset();
+  }
+
+  async function confirmarEliminar() {
+    const resultado = await eliminar.run(bloqueId);
+    if (resultado.ok) navigate("/bloques", { state: { aviso: "Bloque eliminado correctamente." } });
+  }
 
   async function asociarPrograma(programaId: string) {
     setAsociado(null);
+    setDesvinculado(null);
     const resultado = await asociar.run(bloqueId, programaId);
     if (resultado.ok) {
       setAsociado(nombreDe(catalogos.programas, programaId));
+      bloque.reload();
+    }
+  }
+
+  function solicitarDesvinculacion(programaId: string) {
+    setAsociado(null);
+    setDesvinculado(null);
+    asociar.reset();
+    desvincular.reset();
+    setPendiente({ id: programaId, nombre: nombreDe(catalogos.programas, programaId) });
+  }
+
+  function cerrarConfirmacion() {
+    if (desvinculando) return;
+    setPendiente(null);
+    desvincular.reset();
+  }
+
+  async function confirmarDesvinculacion() {
+    if (!pendiente) return;
+    const resultado = await desvincular.run(bloqueId, pendiente.id);
+    if (resultado.ok) {
+      setDesvinculado(pendiente.nombre);
+      setPendiente(null);
       bloque.reload();
     }
   }
@@ -59,11 +108,26 @@ export function BloqueDetallePage() {
           <Link className="btn btn-primary" to={`/bloques/${bloqueId}/editar`}>
             Editar
           </Link>
+          {bloque.status === "success" && (
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                eliminar.reset();
+                setConfirmarBloque(true);
+              }}
+            >
+              Eliminar bloque
+            </button>
+          )}
         </div>
       </header>
 
       {avisoInicial && <SuccessMessage message={avisoInicial} />}
       {asociado && <SuccessMessage message={`Bloque asociado al programa «${asociado}».`} />}
+      {desvinculado && (
+        <SuccessMessage message={`Bloque desvinculado del programa «${desvinculado}».`} />
+      )}
       {asociar.state.status === "error" && <ErrorMessage error={asociar.state.error} />}
       {catalogosQuery.status === "error" && (
         <ErrorMessage error={catalogosQuery.error} onRetry={catalogosQuery.reload} />
@@ -81,9 +145,56 @@ export function BloqueDetallePage() {
             catalogos={catalogos}
             asociando={asociar.state.status === "loading"}
             onAsociar={asociarPrograma}
+            onDesvincular={solicitarDesvinculacion}
+            onEstado={bloque.reload}
           />
         )}
       </QueryContent>
+      {pendiente && (
+        <Modal title="Confirmar desvinculación" onClose={cerrarConfirmacion}>
+          <p>
+            ¿Deseas desvincular este bloque del programa <strong>{pendiente.nombre}</strong>?
+          </p>
+          {desvincular.state.status === "error" && <ErrorMessage error={desvincular.state.error} />}
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={cerrarConfirmacion}
+              disabled={desvinculando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarDesvinculacion}
+              disabled={desvinculando}
+            >
+              {desvinculando ? "Desvinculando…" : "Confirmar desvinculación"}
+            </button>
+          </div>
+        </Modal>
+      )}
+      {confirmarBloque && (
+        <Modal title="Eliminar bloque" onClose={cerrarEliminar}>
+          <p>¿Deseas eliminar este bloque? Solo es posible si no tiene registros relacionados.</p>
+          {eliminar.state.status === "error" && <ErrorMessage error={eliminar.state.error} />}
+          <div className="form-actions">
+            <button type="button" className="btn" onClick={cerrarEliminar} disabled={eliminando}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarEliminar}
+              disabled={eliminando}
+            >
+              {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+            </button>
+          </div>
+        </Modal>
+      )}
     </section>
   );
 }
@@ -93,15 +204,36 @@ interface BloqueDetalleProps {
   catalogos: Catalogos;
   asociando: boolean;
   onAsociar: (programaId: string) => void;
+  onDesvincular: (programaId: string) => void;
+  onEstado: () => void;
 }
 
-function BloqueDetalle({ bloque, catalogos, asociando, onAsociar }: BloqueDetalleProps) {
+function BloqueDetalle({
+  bloque,
+  catalogos,
+  asociando,
+  onAsociar,
+  onDesvincular,
+  onEstado,
+}: BloqueDetalleProps) {
   const [programaId, setProgramaId] = useState("");
-  const disponibles = catalogos.programas.filter((p) => !bloque.programasIds.includes(p.id));
+  const disponibles = catalogos.programas.filter(
+    (p) => bloque.activo !== false && p.activo !== false && !bloque.programasIds.includes(p.id),
+  );
 
   return (
     <>
       <dl className="card detail-list">
+        <dt>Estado</dt>
+        <dd>
+          <EstadoEntidad
+            id={bloque.id}
+            nombre={bloque.descripcion}
+            activo={bloque.activo !== false}
+            cambiar={cambiarEstadoBloque}
+            onSaved={onEstado}
+          />
+        </dd>
         <dt>Descripción</dt>
         <dd>{bloque.descripcion}</dd>
         <dt>Asignatura</dt>
@@ -126,12 +258,22 @@ function BloqueDetalle({ bloque, catalogos, asociando, onAsociar }: BloqueDetall
                 <span className="badge badge--coordinador">
                   {nombreDe(catalogos.programas, id)}
                 </span>
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={`Desvincular de ${nombreDe(catalogos.programas, id)}`}
+                  onClick={() => onDesvincular(id)}
+                >
+                  Desvincular
+                </button>
               </li>
             ))}
           </ul>
         )}
 
-        {disponibles.length > 0 ? (
+        {bloque.activo === false ? (
+          <p>Reactiva el bloque para asociarlo a nuevos programas.</p>
+        ) : disponibles.length > 0 ? (
           <form
             className="card associate-form associate-form--simple"
             aria-label="Asociar a un programa"

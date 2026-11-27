@@ -1,6 +1,14 @@
 import { useCallback, useState } from "react";
-import { listarAsignaturas, type Asignatura } from "../../api/program";
+import {
+  cambiarEstadoAsignatura,
+  eliminarAsignatura,
+  listarAsignaturas,
+  type Asignatura,
+} from "../../api/program";
+import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { EstadoEntidad } from "../components/EstadoEntidad";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { AsignaturaForm } from "./AsignaturaForm";
@@ -15,11 +23,32 @@ export function AsignaturasPanel() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [editor, setEditor] = useState<{ asignatura?: Asignatura } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<Asignatura | null>(null);
+  const eliminar = useApiMutation(eliminarAsignatura);
+  const eliminando = eliminar.state.status === "loading";
   const load = useCallback(
     (signal: AbortSignal) => listarAsignaturas({ page, pageSize: PAGE_SIZE }, signal),
     [page],
   );
   const asignaturas = useApiQuery(load);
+
+  function cancelarEliminacion() {
+    if (eliminando) return;
+    setPendiente(null);
+    eliminar.reset();
+  }
+
+  async function confirmarEliminacion() {
+    if (!pendiente) return;
+    const resultado = await eliminar.run(pendiente.id);
+    if (resultado.ok) {
+      setPendiente(null);
+      setNotice("Asignatura eliminada correctamente.");
+      setPage(1);
+      asignaturas.reload();
+      setRefreshKey((k) => k + 1);
+    }
+  }
 
   function handleSaved() {
     const editando = editor?.asignatura !== undefined;
@@ -76,6 +105,16 @@ export function AsignaturasPanel() {
                     <tr key={asignatura.id}>
                       <td>{asignatura.nombre}</td>
                       <td className="cell-actions">
+                        <EstadoEntidad
+                          id={asignatura.id}
+                          nombre={asignatura.nombre}
+                          activo={asignatura.activo !== false}
+                          cambiar={cambiarEstadoAsignatura}
+                          onSaved={() => {
+                            asignaturas.reload();
+                            setRefreshKey((k) => k + 1);
+                          }}
+                        />
                         <button
                           type="button"
                           className="btn-icon"
@@ -86,6 +125,18 @@ export function AsignaturasPanel() {
                           }}
                         >
                           ✎
+                        </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          aria-label={`Eliminar ${asignatura.nombre}`}
+                          onClick={() => {
+                            setNotice(null);
+                            eliminar.reset();
+                            setPendiente(asignatura);
+                          }}
+                        >
+                          Eliminar
                         </button>
                       </td>
                     </tr>
@@ -132,6 +183,32 @@ export function AsignaturasPanel() {
             onSaved={handleSaved}
             onCancel={() => setEditor(null)}
           />
+        </Modal>
+      )}
+      {pendiente && (
+        <Modal title="Confirmar eliminación" onClose={cancelarEliminacion}>
+          <p>
+            ¿Deseas eliminar la asignatura <strong>{pendiente.nombre}</strong>?
+          </p>
+          {eliminar.state.status === "error" && <ErrorMessage error={eliminar.state.error} />}
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={cancelarEliminacion}
+              disabled={eliminando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarEliminacion}
+              disabled={eliminando}
+            >
+              {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+            </button>
+          </div>
         </Modal>
       )}
     </div>

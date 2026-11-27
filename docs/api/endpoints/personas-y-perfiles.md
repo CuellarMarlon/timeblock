@@ -85,6 +85,8 @@ Para coordinador, el cuerpo usa `{"tipo":"coordinador","especialidad":"..."}`; p
 
 El identificador y el tipo de perfil no se cambian con `PUT`. Una conversión de perfil requiere una regla explícita y queda fuera del contrato M4 inicial.
 
+`DELETE /api/personas/{personaId}` elimina una persona sin dependencias junto con su perfil en una transacción. Responde `204` al eliminar, `404` si no existe, `400` para UUID vacío y `409` si tiene registros relacionados. Si hay conflicto, conserva tanto la persona como su perfil.
+
 ## Autorizaciones de coordinador por programa
 
 | Método y ruta | Resultado |
@@ -92,6 +94,7 @@ El identificador y el tipo de perfil no se cambian con `PUT`. Una conversión de
 | `POST /api/coordinadores/{coordinadorId}/autorizaciones` | Crea una autorización. |
 | `GET /api/coordinadores/{coordinadorId}/autorizaciones` | Lista autorizaciones; filtros opcionales por `programaId` y vigencia. |
 | `PUT /api/coordinadores/{coordinadorId}/autorizaciones/{programaId}/{fechaInicio}` | Actualiza fin de vigencia y permisos. |
+| `DELETE /api/coordinadores/{coordinadorId}/autorizaciones/{programaId}/{fechaInicio}` | Elimina una autorización que ningún horario utiliza. |
 
 Request:
 
@@ -106,6 +109,10 @@ Request:
 ```
 
 La clave lógica es coordinador + programa + fecha de inicio. `fechaFin` puede ser nula; si existe, no puede ser anterior a `fechaInicio`.
+
+Al eliminar una autorización, la API responde `204`; si no existe, `404`, y si un horario la referencia, `409`. La fecha de inicio se indica como `YYYY-MM-DD`. Eliminar la autorización no elimina al coordinador ni al programa.
+
+Una autorización usada por un horario puede cerrarse con una fecha que incluya la creación de todos los horarios que la utilizan. No se puede desactivar `puedeGenerar` ni establecer una fecha de fin que invalide cualquiera de esos horarios: la actualización responde `409`. La creación y la actualización se protegen frente a operaciones concurrentes. El permiso `puedeValidar` sigue siendo editable; en M4 aún no existen validaciones de horarios ni historial de cambios de permisos.
 
 ## Validaciones
 

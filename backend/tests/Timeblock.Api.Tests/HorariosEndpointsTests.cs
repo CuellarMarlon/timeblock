@@ -122,7 +122,7 @@ public sealed class HorariosEndpointsTests : IClassFixture<TimeblockApiFactory>
         Assert.Equal(
             new[]
             {
-                "asignaturaId", "aulaId", "bloqueId", "descripcion", "fecha", "horaFin",
+                "asignaturaId", "aulaId", "bloqueActivo", "bloqueId", "descripcion", "fecha", "horaFin",
                 "horaInicio", "nivelComplejidad", "periodoImp", "tipoActividad",
             },
             primero.EnumerateObject().Select(p => p.Name).Order().ToArray());

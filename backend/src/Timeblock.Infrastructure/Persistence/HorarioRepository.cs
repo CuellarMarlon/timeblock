@@ -61,6 +61,12 @@ public sealed class HorarioRepository(TimeblockDbContext db) : IHorarioRepositor
                 "El horario entra en conflicto con datos ya existentes.", ex);
         }
         catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException error && error.SqlState == PostgresErrorCodes.CheckViolation &&
+                  error.MessageText.StartsWith("AUTORIZACION_HORARIO:", StringComparison.Ordinal))
+        {
+            throw new ResourceConflictException("La autorización cambió y ya no permite crear este horario.", ex);
+        }
+        catch (DbUpdateException ex)
             when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation })
         {
             throw new ResourceConflictException(

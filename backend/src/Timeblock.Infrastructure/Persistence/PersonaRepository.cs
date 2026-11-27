@@ -60,6 +60,7 @@ public sealed class PersonaRepository(TimeblockDbContext db) : IPersonaRepositor
         PersonaRecord? row = await db.Personas.SingleOrDefaultAsync(x => x.IdPersona == persona.Id, ct);
         if (row is null) throw new ResourceNotFoundException($"No existe la persona '{persona.Id}'.");
         row.NombrePersona = persona.Nombre;
+        row.Activo = persona.Activo;
 
         switch (persona.Perfil)
         {
@@ -79,6 +80,47 @@ public sealed class PersonaRepository(TimeblockDbContext db) : IPersonaRepositor
                 break;
         }
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> EliminarAsync(Guid id, CancellationToken ct)
+    {
+        var actual = db.Database.CurrentTransaction;
+        await using var propia = actual is null ? await db.Database.BeginTransactionAsync(ct) : null;
+        var transaccion = actual ?? propia!;
+        const string savepoint = "eliminar_persona";
+        if (actual is not null) await transaccion.CreateSavepointAsync(savepoint, ct);
+        try
+        {
+            // El bloqueo evita nuevas referencias a la persona mientras se elimina el perfil.
+            var filas = await db.Personas.FromSqlInterpolated($"SELECT * FROM \"PERSONA\" WHERE \"idPersona\" = {id} FOR UPDATE")
+                .AsNoTracking().ToListAsync(ct);
+            if (filas.Count == 0)
+            {
+                if (propia is not null) await propia.CommitAsync(ct);
+                else await transaccion.ReleaseSavepointAsync(savepoint, ct);
+                return false;
+            }
+
+            await db.Estudiantes.Where(x => x.IdEstudiante == id).ExecuteDeleteAsync(ct);
+            await db.Coordinadores.Where(x => x.IdCoordinador == id).ExecuteDeleteAsync(ct);
+            await db.JefesDepartamento.Where(x => x.IdJefeDepartamento == id).ExecuteDeleteAsync(ct);
+            await db.Personas.Where(x => x.IdPersona == id).ExecuteDeleteAsync(ct);
+            if (propia is not null) await propia.CommitAsync(ct);
+            else await transaccion.ReleaseSavepointAsync(savepoint, ct);
+            return true;
+        }
+        catch (PostgresException ex) when (ex.SqlState is PostgresErrorCodes.ForeignKeyViolation or "23001")
+        {
+            if (propia is not null) await propia.RollbackAsync(ct);
+            else await transaccion.RollbackToSavepointAsync(savepoint, ct);
+            throw new ResourceConflictException("No se puede eliminar la persona porque tiene registros relacionados.", ex);
+        }
+        catch
+        {
+            if (propia is not null) await propia.RollbackAsync(CancellationToken.None);
+            else await transaccion.RollbackToSavepointAsync(savepoint, CancellationToken.None);
+            throw;
+        }
     }
 
     public async Task<IReadOnlyList<AutorizacionCoordinador>> ListarAutorizacionesAsync(
@@ -110,8 +152,31 @@ public sealed class PersonaRepository(TimeblockDbContext db) : IPersonaRepositor
         db.Autorizaciones.SingleOrDefaultAsync(x => x.CoordinadorId == coordinatorId &&
             x.ProgramaId == programId && x.FechaInicio == start, ct);
 
-    public Task GuardarAutorizacionAsync(AutorizacionCoordinador authorization, CancellationToken ct) =>
-        db.SaveChangesAsync(ct);
+    public async Task GuardarAutorizacionAsync(AutorizacionCoordinador authorization, CancellationToken ct)
+    {
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException error &&
+            error.SqlState == PostgresErrorCodes.CheckViolation &&
+            error.MessageText.StartsWith("AUTORIZACION_HORARIO:", StringComparison.Ordinal))
+        {
+            throw new ResourceConflictException("El cambio invalidaría horarios que utilizan esta autorización.", ex);
+        }
+    }
+
+    public async Task<bool> EliminarAutorizacionAsync(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken ct)
+    {
+        try
+        {
+            return await db.Autorizaciones.Where(x => x.CoordinadorId == coordinadorId &&
+                x.ProgramaId == programaId && x.FechaInicio == fechaInicio).ExecuteDeleteAsync(ct) > 0;
+        }
+        catch (PostgresException ex) when (
+            (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation || ex.SqlState == "23001") &&
+            ex.ConstraintName == "FK_HORARIO_COORDINADOR_EN_PROGRAMA_idCoordinadorGen_idPrograma~")
+        {
+            throw new ResourceConflictException("No se puede eliminar la autorización porque un horario la utiliza.", ex);
+        }
+    }
 
     private async Task<Persona> ToDomainAsync(PersonaRecord row, CancellationToken ct)
     {

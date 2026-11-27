@@ -90,6 +90,7 @@ export function HorarioDetallePage() {
                           <td>{bloque.fecha}</td>
                           <td>
                             <Link to={`/bloques/${bloque.bloqueId}`}>{bloque.descripcion}</Link>
+                            {bloque.bloqueActivo === false && " (inactivo)"}
                           </td>
                           <td>{nombreDe(catalogos.asignaturas, bloque.asignaturaId)}</td>
                           <td>{etiquetaTipoActividad(bloque.tipoActividad)}</td>

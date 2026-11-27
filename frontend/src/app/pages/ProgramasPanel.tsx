@@ -1,6 +1,14 @@
 import { useCallback, useState } from "react";
-import { listarProgramas, type Programa } from "../../api/program";
+import {
+  cambiarEstadoPrograma,
+  eliminarPrograma,
+  listarProgramas,
+  type Programa,
+} from "../../api/program";
+import { useApiMutation } from "../../api/useApiMutation";
 import { useApiQuery } from "../../api/useApiQuery";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { EstadoEntidad } from "../components/EstadoEntidad";
 import { Modal } from "../components/Modal";
 import { QueryContent } from "../components/QueryContent";
 import { ProgramaForm } from "./ProgramaForm";
@@ -13,12 +21,32 @@ export function ProgramasPanel() {
   const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<{ programa?: Programa } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pendiente, setPendiente] = useState<Programa | null>(null);
+  const eliminar = useApiMutation(eliminarPrograma);
+  const eliminando = eliminar.state.status === "loading";
 
   const load = useCallback(
     (signal: AbortSignal) => listarProgramas({ page, pageSize: PAGE_SIZE }, signal),
     [page],
   );
   const programas = useApiQuery(load);
+
+  function cancelarEliminacion() {
+    if (eliminando) return;
+    setPendiente(null);
+    eliminar.reset();
+  }
+
+  async function confirmarEliminacion() {
+    if (!pendiente) return;
+    const resultado = await eliminar.run(pendiente.id);
+    if (resultado.ok) {
+      setPendiente(null);
+      setNotice("Programa eliminado correctamente.");
+      setPage(1);
+      programas.reload();
+    }
+  }
 
   function handleSaved() {
     const editando = editor?.programa !== undefined;
@@ -74,6 +102,13 @@ export function ProgramasPanel() {
                       <td>{programa.nombre}</td>
                       <td>{programa.planEstudio}</td>
                       <td className="cell-actions">
+                        <EstadoEntidad
+                          id={programa.id}
+                          nombre={programa.nombre}
+                          activo={programa.activo !== false}
+                          cambiar={cambiarEstadoPrograma}
+                          onSaved={programas.reload}
+                        />
                         <button
                           type="button"
                           className="btn-icon"
@@ -84,6 +119,18 @@ export function ProgramasPanel() {
                           }}
                         >
                           ✎
+                        </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          aria-label={`Eliminar ${programa.nombre}`}
+                          onClick={() => {
+                            setNotice(null);
+                            eliminar.reset();
+                            setPendiente(programa);
+                          }}
+                        >
+                          Eliminar
                         </button>
                       </td>
                     </tr>
@@ -128,6 +175,32 @@ export function ProgramasPanel() {
             onSaved={handleSaved}
             onCancel={() => setEditor(null)}
           />
+        </Modal>
+      )}
+      {pendiente && (
+        <Modal title="Confirmar eliminación" onClose={cancelarEliminacion}>
+          <p>
+            ¿Deseas eliminar el programa <strong>{pendiente.nombre}</strong>?
+          </p>
+          {eliminar.state.status === "error" && <ErrorMessage error={eliminar.state.error} />}
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn"
+              onClick={cancelarEliminacion}
+              disabled={eliminando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={confirmarEliminacion}
+              disabled={eliminando}
+            >
+              {eliminando ? "Eliminando…" : "Confirmar eliminación"}
+            </button>
+          </div>
         </Modal>
       )}
     </div>

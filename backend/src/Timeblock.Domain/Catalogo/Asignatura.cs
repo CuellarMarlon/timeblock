@@ -8,6 +8,10 @@ public sealed class Asignatura
 
     public string Nombre { get; private set; }
 
+    public bool Activo { get; private set; } = true;
+
+    public void CambiarEstado(bool activo) => Activo = activo;
+
     private Asignatura(Guid id, string nombre)
     {
         Id = id;

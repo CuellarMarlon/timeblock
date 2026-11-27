@@ -12,6 +12,7 @@ public sealed class AsignaturaConfiguration
         builder.ToTable("ASIGNATURA");
 
         builder.HasKey(asignatura => asignatura.Id);
+        builder.Property(asignatura => asignatura.Activo).HasColumnName("activo").HasDefaultValue(true);
 
         builder.Property(asignatura => asignatura.Id)
             .HasColumnName("idAsignatura")

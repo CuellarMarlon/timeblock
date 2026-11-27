@@ -9,6 +9,7 @@ public sealed class PersonaConfiguration : IEntityTypeConfiguration<PersonaRecor
     {
         builder.ToTable("PERSONA");
         builder.HasKey(persona => persona.IdPersona);
+        builder.Property(persona => persona.Activo).HasColumnName("activo").HasDefaultValue(true);
 
         builder.Property(persona => persona.IdPersona)
             .HasColumnName("idPersona")

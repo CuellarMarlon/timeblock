@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Timeblock.Application.Common.Exceptions;
 using Timeblock.Application.Horarios;
 using Timeblock.Application.Personas;
@@ -11,8 +12,335 @@ using Timeblock.Infrastructure.Persistence;
 
 namespace Timeblock.Infrastructure.Tests;
 
+[CollectionDefinition("Horarios PostgreSQL", DisableParallelization = true)]
+public sealed class HorariosPostgreSqlCollection;
+
+[Collection("Horarios PostgreSQL")]
 public sealed class HorarioRepositoryIntegrationTests
 {
+    [PostgreSqlFact]
+    public async Task InactivarBloqueAntesDeUsoConcurrente_ImpideAgregarloAlHorario()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        HorarioDetalle horario = await Servicio(db).CrearAsync(
+            Comando(e, "CONCURRENCIA", new BloqueEnHorarioCommand(e.Teoria.Id, Fecha1)), CancellationToken.None);
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"FECHA\" (\"fecha\") VALUES ({Fecha2}) ON CONFLICT DO NOTHING");
+        try
+        {
+            await using var c1 = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await using var c2 = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await c1.OpenAsync();
+            await c2.OpenAsync();
+            await using var t1 = await c1.BeginTransactionAsync();
+            await using var t2 = await c2.BeginTransactionAsync();
+            await using var inactivar = new NpgsqlCommand("UPDATE \"BLOQUE_CONTENIDO\" SET activo = false WHERE \"idBloque\" = @id", c1, t1);
+            inactivar.Parameters.AddWithValue("id", e.Practica.Id);
+            await inactivar.ExecuteNonQueryAsync();
+            await using var insertar = new NpgsqlCommand("INSERT INTO \"BLOQUE_EN_HORARIO\" (\"idHorario\", \"idBloque\", \"fecha\") VALUES (@horario, @bloque, @fecha)", c2, t2);
+            insertar.Parameters.AddWithValue("horario", horario.Horario.Id);
+            insertar.Parameters.AddWithValue("bloque", e.Practica.Id);
+            insertar.Parameters.AddWithValue("fecha", Fecha2);
+            Task<int> intento = insertar.ExecuteNonQueryAsync();
+            await using var monitor = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await monitor.OpenAsync();
+            var limite = DateTime.UtcNow.AddSeconds(10);
+            bool bloqueada = false;
+            while (!intento.IsCompleted && DateTime.UtcNow < limite)
+            {
+                await using var consulta = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid = @pid AND wait_event_type = 'Lock')", monitor);
+                consulta.Parameters.AddWithValue("pid", c2.ProcessID);
+                if ((bool)(await consulta.ExecuteScalarAsync())!) { bloqueada = true; break; }
+                await Task.Delay(20);
+            }
+            Assert.True(bloqueada);
+            await t1.CommitAsync();
+            var error = await Assert.ThrowsAsync<PostgresException>(async () => await intento.WaitAsync(TimeSpan.FromSeconds(10)));
+            Assert.Equal("23514", error.SqlState);
+            await t2.RollbackAsync();
+            Assert.False(await db.BloquesEnHorario.AsNoTracking().AnyAsync(x => x.HorarioId == horario.Horario.Id && x.BloqueId == e.Practica.Id));
+        }
+        finally
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"BLOQUE_EN_HORARIO\" WHERE \"idHorario\" = {horario.Horario.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"HORARIO\" WHERE \"idHorario\" = {horario.Horario.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"COORDINADOR_EN_PROGRAMA\" WHERE \"idCoordinador\" = {e.Coordinador} AND \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"BLOQUE_PROGRAMA\" WHERE \"idBloque\" IN ({e.Teoria.Id}, {e.Practica.Id})");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"BLOQUE_CONTENIDO\" WHERE \"idBloque\" IN ({e.Teoria.Id}, {e.Practica.Id})");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PROGRAMA_ASIGNATURA\" WHERE \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PROGRAMA_ACADEMICO\" WHERE \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"ASIGNATURA\" WHERE \"idAsignatura\" = {e.Asignatura}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"COORDINADOR\" WHERE \"idCoordinador\" = {e.Coordinador}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PERSONA\" WHERE \"idPersona\" = {e.Coordinador}");
+        }
+    }
+
+    [PostgreSqlFact]
+    public async Task CrearHorario_ConProgramaOBloqueInactivo_RechazaSinDejarHorario()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        await using var tx = await db.Database.BeginTransactionAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        db.ChangeTracker.Clear();
+        var programa = await db.Programas.SingleAsync(p => p.Id == e.Programa.Id);
+        programa.CambiarEstado(false);
+        await db.SaveChangesAsync();
+        await tx.CreateSavepointAsync("programa_inactivo");
+        await Assert.ThrowsAsync<ResourceConflictException>(() => Servicio(db).CrearAsync(
+            Comando(e, "INACTIVO", new BloqueEnHorarioCommand(e.Teoria.Id, Fecha1)), CancellationToken.None));
+        await tx.RollbackToSavepointAsync("programa_inactivo");
+        db.ChangeTracker.Clear();
+        Assert.False(await db.Horarios.AsNoTracking().AnyAsync(h => h.ProgramaId == e.Programa.Id));
+        programa = await db.Programas.SingleAsync(p => p.Id == e.Programa.Id);
+        programa.CambiarEstado(true);
+        var bloque = await db.Bloques.SingleAsync(b => b.Id == e.Teoria.Id);
+        bloque.CambiarEstado(false);
+        await db.SaveChangesAsync();
+        await tx.CreateSavepointAsync("bloque_inactivo");
+        await Assert.ThrowsAsync<ResourceConflictException>(() => Servicio(db).CrearAsync(
+            Comando(e, "INACTIVO", new BloqueEnHorarioCommand(e.Teoria.Id, Fecha1)), CancellationToken.None));
+        await tx.RollbackToSavepointAsync("bloque_inactivo");
+        db.ChangeTracker.Clear();
+        Assert.False(await db.Horarios.AsNoTracking().AnyAsync(h => h.ProgramaId == e.Programa.Id));
+        await tx.RollbackAsync();
+    }
+
+    [PostgreSqlFact]
+    public async Task EliminarBloque_SinDependenciasElimina_ConProgramaRechaza()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        var repo = new BloqueRepository(db);
+        var libre = BloqueContenido.Crear($"Libre {Guid.NewGuid()}", TipoActividad.Teoria,
+            NivelComplejidad.Bajo, e.Asignatura, e.Coordinador);
+        await repo.AgregarAsync(libre, CancellationToken.None);
+        Assert.True(await repo.EliminarAsync(libre.Id, CancellationToken.None));
+        Assert.False(await repo.EliminarAsync(libre.Id, CancellationToken.None));
+        await transaction.CreateSavepointAsync("antes_eliminar_bloque");
+        await Assert.ThrowsAsync<ResourceConflictException>(() => repo.EliminarAsync(e.Teoria.Id, CancellationToken.None));
+        await transaction.RollbackToSavepointAsync("antes_eliminar_bloque");
+        Assert.True(await db.Bloques.AsNoTracking().AnyAsync(b => b.Id == e.Teoria.Id));
+        await transaction.RollbackAsync();
+    }
+
+    [PostgreSqlTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task CrearHorarioYModificarAutorizacion_Concurrentes_NoInvalidanHorario(bool actualizarPrimero)
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        Guid horarioId = Guid.NewGuid();
+        try
+        {
+            await using var c1 = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await using var c2 = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await c1.OpenAsync();
+            await c2.OpenAsync();
+            await using var t1 = await c1.BeginTransactionAsync();
+            await using var t2 = await c2.BeginTransactionAsync();
+            const string actualizar = "UPDATE \"COORDINADOR_EN_PROGRAMA\" SET \"puedeGenerar\" = false WHERE \"idCoordinador\" = @coordinador AND \"idPrograma\" = @programa AND \"fechaInicio\" = @inicio";
+            const string insertar = "INSERT INTO \"HORARIO\" (\"idHorario\", \"idPrograma\", \"idCoordinadorGen\", \"fechaInicioGen\", \"fechaCreacion\", \"periodoAcademico\", \"estadoHorario\") VALUES (@horario, @programa, @coordinador, @inicio, @ahora, 'CONCURRENCIA', 'GENERADO')";
+            NpgsqlCommand CrearComando(NpgsqlConnection c, NpgsqlTransaction t, string sql)
+            {
+                var cmd = new NpgsqlCommand(sql, c, t);
+                cmd.Parameters.AddWithValue("coordinador", e.Coordinador);
+                cmd.Parameters.AddWithValue("programa", e.Programa.Id);
+                cmd.Parameters.AddWithValue("inicio", e.InicioAutorizacion);
+                cmd.Parameters.AddWithValue("horario", horarioId);
+                cmd.Parameters.AddWithValue("ahora", DateTime.UtcNow);
+                return cmd;
+            }
+            await using var primera = CrearComando(c1, t1, actualizarPrimero ? actualizar : insertar);
+            await using var segunda = CrearComando(c2, t2, actualizarPrimero ? insertar : actualizar);
+            await primera.ExecuteNonQueryAsync();
+            Task<int> ejecucion = segunda.ExecuteNonQueryAsync();
+            await using var monitor = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await monitor.OpenAsync();
+            var limite = DateTime.UtcNow.AddSeconds(10);
+            bool bloqueada = false;
+            while (!ejecucion.IsCompleted && DateTime.UtcNow < limite)
+            {
+                await using var consulta = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid = @pid AND wait_event_type = 'Lock')", monitor);
+                consulta.Parameters.AddWithValue("pid", c2.ProcessID);
+                if ((bool)(await consulta.ExecuteScalarAsync())!) { bloqueada = true; break; }
+                await Task.Delay(20);
+            }
+            Assert.True(bloqueada, "La segunda operación no esperó el bloqueo de la autorización.");
+            await t1.CommitAsync();
+            var error = await Assert.ThrowsAsync<PostgresException>(async () => await ejecucion.WaitAsync(TimeSpan.FromSeconds(10)));
+            Assert.Equal("23514", error.SqlState);
+            await t2.RollbackAsync();
+            bool existe = await db.Horarios.AsNoTracking().AnyAsync(h => h.Id == horarioId);
+            bool permiso = await db.Autorizaciones.AsNoTracking().Where(a => a.CoordinadorId == e.Coordinador && a.ProgramaId == e.Programa.Id && a.FechaInicio == e.InicioAutorizacion).Select(a => a.PuedeGenerar).SingleAsync();
+            Assert.False(existe && !permiso);
+            Assert.Equal(!actualizarPrimero, existe);
+        }
+        finally
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"HORARIO\" WHERE \"idHorario\" = {horarioId}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"COORDINADOR_EN_PROGRAMA\" WHERE \"idCoordinador\" = {e.Coordinador} AND \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"BLOQUE_PROGRAMA\" WHERE \"idBloque\" IN ({e.Teoria.Id}, {e.Practica.Id})");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"BLOQUE_CONTENIDO\" WHERE \"idBloque\" IN ({e.Teoria.Id}, {e.Practica.Id})");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PROGRAMA_ASIGNATURA\" WHERE \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PROGRAMA_ACADEMICO\" WHERE \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"ASIGNATURA\" WHERE \"idAsignatura\" = {e.Asignatura}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"COORDINADOR\" WHERE \"idCoordinador\" = {e.Coordinador}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PERSONA\" WHERE \"idPersona\" = {e.Coordinador}");
+        }
+    }
+
+    [PostgreSqlFact]
+    public async Task ActualizarAutorizacion_ProtegeHorarioYPermiteCerrarEnFechaValida()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        await Servicio(db).CrearAsync(Comando(e, "PRUEBA", new BloqueEnHorarioCommand(e.Teoria.Id, Fecha1)), CancellationToken.None);
+        var personas = new PersonasService(new PersonaRepository(db));
+        await transaction.CreateSavepointAsync("antes_cambios");
+        await Assert.ThrowsAsync<ResourceConflictException>(() => personas.ActualizarAutorizacionAsync(
+            e.Coordinador, e.Programa.Id, e.InicioAutorizacion, Hoy.AddDays(-1), true, false, CancellationToken.None));
+        await transaction.RollbackToSavepointAsync("antes_cambios");
+        db.ChangeTracker.Clear();
+        await Assert.ThrowsAsync<ResourceConflictException>(() => personas.ActualizarAutorizacionAsync(
+            e.Coordinador, e.Programa.Id, e.InicioAutorizacion, null, false, false, CancellationToken.None));
+        await transaction.RollbackToSavepointAsync("antes_cambios");
+        db.ChangeTracker.Clear();
+        var actualizada = await personas.ActualizarAutorizacionAsync(
+            e.Coordinador, e.Programa.Id, e.InicioAutorizacion, Hoy, true, true, CancellationToken.None);
+        Assert.Equal(Hoy, actualizada.FechaFin);
+        Assert.True(actualizada.PuedeGenerar);
+        Assert.True(actualizada.PuedeValidar);
+        await transaction.RollbackAsync();
+    }
+
+    [PostgreSqlFact]
+    public async Task EliminarAutorizacion_SinUsoElimina_ConHorarioProtegeReferencia()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        var personas = new PersonasService(new PersonaRepository(db));
+        var fechaSinUso = e.InicioAutorizacion.AddDays(-1);
+        await personas.CrearAutorizacionAsync(e.Coordinador, e.Programa.Id, fechaSinUso, null, true, false, CancellationToken.None);
+        await personas.EliminarAutorizacionAsync(e.Coordinador, e.Programa.Id, fechaSinUso, CancellationToken.None);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+            personas.EliminarAutorizacionAsync(e.Coordinador, e.Programa.Id, fechaSinUso, CancellationToken.None));
+
+        var horario = await Servicio(db).CrearAsync(Comando(e, "PRUEBA", new BloqueEnHorarioCommand(e.Teoria.Id, Fecha1)), CancellationToken.None);
+        await transaction.CreateSavepointAsync("antes_eliminar_autorizacion");
+        await Assert.ThrowsAsync<ResourceConflictException>(() =>
+            personas.EliminarAutorizacionAsync(e.Coordinador, e.Programa.Id, e.InicioAutorizacion, CancellationToken.None));
+        await transaction.RollbackToSavepointAsync("antes_eliminar_autorizacion");
+        Assert.True(await db.Autorizaciones.AsNoTracking().AnyAsync(x => x.CoordinadorId == e.Coordinador && x.ProgramaId == e.Programa.Id && x.FechaInicio == e.InicioAutorizacion));
+        Assert.True(await db.Horarios.AsNoTracking().AnyAsync(x => x.Id == horario.Horario.Id));
+        await transaction.RollbackAsync();
+    }
+
+    [PostgreSqlTheory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task DesvincularYAgregarBloqueConcurrentemente_NoDejaHorarioIncompatible(bool borrarPrimero)
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        HorarioDetalle horario = await Servicio(db).CrearAsync(
+            Comando(e, "CONCURRENCIA", new BloqueEnHorarioCommand(e.Teoria.Id, Fecha1)), CancellationToken.None);
+        // La fecha existe antes de iniciar las transacciones concurrentes.
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"FECHA\" (\"fecha\") VALUES ({Fecha2}) ON CONFLICT DO NOTHING");
+        try
+        {
+            await using var c1 = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await using var c2 = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await c1.OpenAsync();
+            await c2.OpenAsync();
+            await using var t1 = await c1.BeginTransactionAsync();
+            await using var t2 = await c2.BeginTransactionAsync();
+            string borrar = "DELETE FROM \"BLOQUE_PROGRAMA\" WHERE \"idBloque\" = @bloque AND \"idPrograma\" = @programa";
+            string insertar = "INSERT INTO \"BLOQUE_EN_HORARIO\" (\"idHorario\", \"idBloque\", \"fecha\") VALUES (@horario, @bloque, @fecha)";
+
+            NpgsqlCommand ComandoSql(NpgsqlConnection c, NpgsqlTransaction t, string sql)
+            {
+                var cmd = new NpgsqlCommand(sql, c, t);
+                cmd.Parameters.AddWithValue("bloque", e.Practica.Id);
+                cmd.Parameters.AddWithValue("programa", e.Programa.Id);
+                cmd.Parameters.AddWithValue("horario", horario.Horario.Id);
+                cmd.Parameters.AddWithValue("fecha", Fecha2);
+                return cmd;
+            }
+
+            await using var primero = ComandoSql(c1, t1, borrarPrimero ? borrar : insertar);
+            await using var segundo = ComandoSql(c2, t2, borrarPrimero ? insertar : borrar);
+            await primero.ExecuteNonQueryAsync();
+            Task<int> segunda = segundo.ExecuteNonQueryAsync();
+            // Esperar al bloqueo real evita depender de una pausa fija.
+            await using var monitor = new NpgsqlConnection(Environment.GetEnvironmentVariable("TIMEBLOCK_TEST_CONNECTION"));
+            await monitor.OpenAsync();
+            var limite = DateTime.UtcNow.AddSeconds(10);
+            bool bloqueada = false;
+            while (!segunda.IsCompleted && DateTime.UtcNow < limite)
+            {
+                await using var consulta = new NpgsqlCommand(
+                    "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid = @pid AND wait_event_type = 'Lock')", monitor);
+                consulta.Parameters.AddWithValue("pid", c2.ProcessID);
+                if ((bool)(await consulta.ExecuteScalarAsync())!) { bloqueada = true; break; }
+                await Task.Delay(20);
+            }
+            Assert.True(bloqueada, "La segunda operación no quedó esperando el bloqueo.");
+            await t1.CommitAsync();
+            var error = await Assert.ThrowsAsync<PostgresException>(async () => await segunda.WaitAsync(TimeSpan.FromSeconds(10)));
+            Assert.Contains(error.SqlState, new[] { "23503", "23001" });
+            await t2.RollbackAsync();
+
+            bool existeRelacion = await db.BloquesProgramas.AsNoTracking().AnyAsync(x => x.BloqueId == e.Practica.Id && x.ProgramaId == e.Programa.Id);
+            bool existeBloqueHorario = await db.BloquesEnHorario.AsNoTracking().AnyAsync(x => x.BloqueId == e.Practica.Id && x.HorarioId == horario.Horario.Id);
+            Assert.False(existeBloqueHorario && !existeRelacion);
+            Assert.Equal(!borrarPrimero, existeBloqueHorario);
+        }
+        finally
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"BLOQUE_EN_HORARIO\" WHERE \"idHorario\" = {horario.Horario.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"HORARIO\" WHERE \"idHorario\" = {horario.Horario.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"COORDINADOR_EN_PROGRAMA\" WHERE \"idCoordinador\" = {e.Coordinador} AND \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"BLOQUE_PROGRAMA\" WHERE \"idBloque\" IN ({e.Teoria.Id}, {e.Practica.Id})");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"BLOQUE_CONTENIDO\" WHERE \"idBloque\" IN ({e.Teoria.Id}, {e.Practica.Id})");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PROGRAMA_ASIGNATURA\" WHERE \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PROGRAMA_ACADEMICO\" WHERE \"idPrograma\" = {e.Programa.Id}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"ASIGNATURA\" WHERE \"idAsignatura\" = {e.Asignatura}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"COORDINADOR\" WHERE \"idCoordinador\" = {e.Coordinador}");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"PERSONA\" WHERE \"idPersona\" = {e.Coordinador}");
+        }
+    }
+
+    [PostgreSqlFact]
+    public async Task DesvincularBloque_ConHorario_RechazaYConservaLaAsociacion()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        Escenario e = await CrearEscenarioAsync(db);
+        var bloques = new BloqueRepository(db);
+        Assert.True(await bloques.DesasociarProgramaAsync(e.Practica.Id, e.Programa.Id, CancellationToken.None));
+        Assert.False(await bloques.DesasociarProgramaAsync(e.Practica.Id, e.Programa.Id, CancellationToken.None));
+
+        await Servicio(db).CrearAsync(Comando(e, "PRUEBA", new BloqueEnHorarioCommand(e.Teoria.Id, Fecha1)), CancellationToken.None);
+        await transaction.CreateSavepointAsync("antes_baja");
+        await Assert.ThrowsAsync<ResourceConflictException>(() =>
+            bloques.DesasociarProgramaAsync(e.Teoria.Id, e.Programa.Id, CancellationToken.None));
+        await transaction.RollbackToSavepointAsync("antes_baja");
+        Assert.True(await db.BloquesProgramas.AsNoTracking().AnyAsync(x => x.BloqueId == e.Teoria.Id && x.ProgramaId == e.Programa.Id));
+        await transaction.RollbackAsync();
+    }
+
     private static readonly DateOnly Fecha1 = new(2031, 3, 10);
     private static readonly DateOnly Fecha2 = new(2031, 3, 12);
 

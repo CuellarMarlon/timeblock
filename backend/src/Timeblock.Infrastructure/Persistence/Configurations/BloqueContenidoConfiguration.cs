@@ -51,6 +51,7 @@ public sealed class BloqueContenidoConfiguration
         });
 
         builder.HasKey(bloque => bloque.Id);
+        builder.Property(bloque => bloque.Activo).HasColumnName("activo").HasDefaultValue(true);
 
         builder.Property(bloque => bloque.Id)
             .HasColumnName("idBloque")

@@ -19,6 +19,10 @@ public sealed class BloqueContenido
 
     public Guid Id { get; private set; }
 
+    public bool Activo { get; private set; } = true;
+
+    public void CambiarEstado(bool activo) => Activo = activo;
+
     /// <summary>Descripción sin espacios sobrantes; conserva mayúsculas y acentos.</summary>
     public string Descripcion { get; private set; }
 
@@ -154,6 +158,9 @@ public sealed class BloqueContenido
 
     public bool EstaAsociadoAPrograma(Guid programaId) =>
         _programas.Any(asociacion => asociacion.ProgramaId == programaId);
+
+    public bool DesasociarPrograma(Guid programaId) =>
+        _programas.RemoveAll(asociacion => asociacion.ProgramaId == programaId) > 0;
 
     /// <summary>
     /// Un bloque puede utilizarse en un programa cuando está asociado a él,

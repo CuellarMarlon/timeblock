@@ -15,6 +15,7 @@ public sealed class FakeBloqueRepository : IBloqueRepository
     public Dictionary<Guid, ProgramaAcademico> Programas { get; } = [];
 
     public List<BloqueContenido> Bloques { get; } = [];
+    public HashSet<(Guid BloqueId, Guid ProgramaId)> RelacionesEnHorarios { get; } = [];
 
    
     public int Consultas { get; private set; }
@@ -157,5 +158,21 @@ public sealed class FakeBloqueRepository : IBloqueRepository
     {
         Guardados++;
         return Task.CompletedTask;
+    }
+
+    public Task<bool> DesasociarProgramaAsync(Guid bloqueId, Guid programaId, CancellationToken ct)
+    {
+        if (RelacionesEnHorarios.Contains((bloqueId, programaId)))
+            throw new ResourceConflictException("El bloque pertenece a un horario del programa.");
+        return Task.FromResult(Bloques.FirstOrDefault(bloque => bloque.Id == bloqueId)?.DesasociarPrograma(programaId) ?? false);
+    }
+
+    public Task<bool> EliminarAsync(Guid bloqueId, CancellationToken ct)
+    {
+        var bloque = Bloques.FirstOrDefault(x => x.Id == bloqueId);
+        if (bloque is null) return Task.FromResult(false);
+        if (bloque.Programas.Count > 0 || RelacionesEnHorarios.Any(x => x.BloqueId == bloqueId))
+            throw new ResourceConflictException("El bloque tiene registros relacionados.");
+        return Task.FromResult(Bloques.Remove(bloque));
     }
 }

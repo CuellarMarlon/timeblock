@@ -134,4 +134,62 @@ describe("ProgramasPanel", () => {
     );
     expect(await screen.findByText("Programa actualizado correctamente.")).toBeInTheDocument();
   });
+
+  it("permite cancelar la eliminación sin enviar una petición", async () => {
+    mocked.listarProgramas.mockResolvedValue(
+      pagina([{ id: "1", nombre: "Ingeniería", planEstudio: "2026" }]),
+    );
+    const user = userEvent.setup();
+    render(<ProgramasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Ingeniería" }));
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(mocked.eliminarPrograma).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("elimina y recarga la lista", async () => {
+    mocked.listarProgramas.mockResolvedValue(
+      pagina([{ id: "1", nombre: "Ingeniería", planEstudio: "2026" }]),
+    );
+    mocked.eliminarPrograma.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<ProgramasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Ingeniería" }));
+    mocked.listarProgramas.mockResolvedValue(pagina([]));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(mocked.eliminarPrograma).toHaveBeenCalledWith("1");
+    expect(await screen.findByText("Programa eliminado correctamente.")).toBeInTheDocument();
+    expect(await screen.findByText("Todavía no hay programas registrados.")).toBeInTheDocument();
+  });
+
+  it("muestra el conflicto si el programa tiene dependencias", async () => {
+    mocked.listarProgramas.mockResolvedValue(
+      pagina([{ id: "1", nombre: "Ingeniería", planEstudio: "2026" }]),
+    );
+    mocked.eliminarPrograma.mockRejectedValue(
+      new ApiError(409, { detail: "El programa tiene registros relacionados." }),
+    );
+    const user = userEvent.setup();
+    render(<ProgramasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Ingeniería" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(
+      await screen.findByText("El programa tiene registros relacionados."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("impide cancelar mientras se procesa la eliminación", async () => {
+    mocked.listarProgramas.mockResolvedValue(
+      pagina([{ id: "1", nombre: "Ingeniería", planEstudio: "2026" }]),
+    );
+    mocked.eliminarPrograma.mockReturnValue(new Promise<void>(() => {}));
+    const user = userEvent.setup();
+    render(<ProgramasPanel />);
+    await user.click(await screen.findByRole("button", { name: "Eliminar Ingeniería" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(screen.getByRole("button", { name: "Eliminando…" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
 });

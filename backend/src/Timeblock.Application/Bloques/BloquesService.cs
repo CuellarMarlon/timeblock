@@ -152,6 +152,29 @@ public sealed class BloquesService(IBloqueRepository bloques) : ICasoDeUso
         await bloques.GuardarCambiosAsync(ct);
     }
 
+    public async Task DesasociarProgramaAsync(Guid bloqueId, Guid programaId, CancellationToken ct)
+    {
+        ValidarId(bloqueId, "bloqueId");
+        ValidarId(programaId, "programaId");
+        if (!await bloques.DesasociarProgramaAsync(bloqueId, programaId, ct))
+            throw new ResourceNotFoundException("No existe una asociación entre ese bloque y ese programa.");
+    }
+
+    public async Task EliminarAsync(Guid bloqueId, CancellationToken ct)
+    {
+        ValidarId(bloqueId, "bloqueId");
+        if (!await bloques.EliminarAsync(bloqueId, ct))
+            throw new ResourceNotFoundException($"No existe el bloque '{bloqueId}'.");
+    }
+
+    public async Task<BloqueContenido> CambiarEstadoAsync(Guid bloqueId, bool activo, CancellationToken ct)
+    {
+        var bloque = await ObtenerAsync(bloqueId, ct);
+        bloque.CambiarEstado(activo);
+        await bloques.GuardarCambiosAsync(ct);
+        return bloque;
+    }
+
     private async Task AsegurarAsignaturaAsync(Guid asignaturaId, CancellationToken ct)
     {
         if (!await bloques.ExisteAsignaturaAsync(asignaturaId, ct))

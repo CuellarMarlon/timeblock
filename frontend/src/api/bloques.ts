@@ -33,6 +33,11 @@ export interface Bloque {
   asignaturaId: string;
   coordinadorId: string;
   programasIds: string[];
+  activo?: boolean;
+}
+
+export function cambiarEstadoBloque(id: string, activo: boolean) {
+  return apiClient.put<Bloque>(`/api/bloques/${id}/estado`, { activo });
 }
 
 export interface CrearBloque {
@@ -86,4 +91,12 @@ export function actualizarBloque(id: string, cambios: ActualizarBloque): Promise
 // Asocia el bloque a un programa. Si ya estaba asociado no da error
 export function asociarBloqueAPrograma(bloqueId: string, programaId: string): Promise<void> {
   return apiClient.put<void>(`/api/bloques/${bloqueId}/programas/${programaId}`);
+}
+
+export function desasociarBloqueDePrograma(bloqueId: string, programaId: string): Promise<void> {
+  return apiClient.delete<void>(`/api/bloques/${bloqueId}/programas/${programaId}`);
+}
+
+export function eliminarBloque(bloqueId: string): Promise<void> {
+  return apiClient.delete<void>(`/api/bloques/${bloqueId}`);
 }

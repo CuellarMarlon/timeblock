@@ -34,6 +34,71 @@ public sealed class BloquesEndpointsTests : IClassFixture<TimeblockApiFactory>
                 services.Replace(ServiceDescriptor.Scoped<IBloqueRepository>(_ => _repositorio))))
             .CreateClient();
 
+    [Fact]
+    public async Task CambiarEstado_DevuelveEstadoYConservaRelaciones()
+    {
+        BloqueContenido bloque = Sembrar(programas: [_programa]);
+        using HttpClient cliente = CrearCliente();
+        using var respuesta = await cliente.PutAsync($"/api/bloques/{bloque.Id}/estado", RespuestaExtensions.Json("""{"activo":false}"""));
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var json = await respuesta.LeerJsonAsync();
+        Assert.False(json.GetProperty("activo").GetBoolean());
+        Assert.True(bloque.EstaAsociadoAPrograma(_programa.Id));
+        using var restaurar = await cliente.PutAsync($"/api/bloques/{bloque.Id}/estado", RespuestaExtensions.Json("""{"activo":true}"""));
+        Assert.True((await restaurar.LeerJsonAsync()).GetProperty("activo").GetBoolean());
+    }
+
+    [Fact]
+    public async Task EliminarBloque_SinDependencias_Responde204YLuego404()
+    {
+        BloqueContenido bloque = Sembrar();
+        using HttpClient client = CrearCliente();
+        using var primera = await client.DeleteAsync($"/api/bloques/{bloque.Id}");
+        using var segunda = await client.DeleteAsync($"/api/bloques/{bloque.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, primera.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, segunda.StatusCode);
+    }
+
+    [Fact]
+    public async Task EliminarBloque_ConPrograma_Responde409()
+    {
+        BloqueContenido bloque = Sembrar(programas: [_programa]);
+        using HttpClient client = CrearCliente();
+        using var respuesta = await client.DeleteAsync($"/api/bloques/{bloque.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        Assert.Contains(bloque, _repositorio.Bloques);
+    }
+
+    [Fact]
+    public async Task DesasociarPrograma_ExistenteYRepetida_Responde204Y404()
+    {
+        BloqueContenido bloque = Sembrar(programas: [_programa]);
+        using HttpClient client = CrearCliente();
+        using var primera = await client.DeleteAsync($"/api/bloques/{bloque.Id}/programas/{_programa.Id}");
+        using var segunda = await client.DeleteAsync($"/api/bloques/{bloque.Id}/programas/{_programa.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, primera.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, segunda.StatusCode);
+    }
+
+    [Fact]
+    public async Task DesasociarPrograma_EnHorario_Responde409()
+    {
+        BloqueContenido bloque = Sembrar(programas: [_programa]);
+        _repositorio.RelacionesEnHorarios.Add((bloque.Id, _programa.Id));
+        using HttpClient client = CrearCliente();
+        using var respuesta = await client.DeleteAsync($"/api/bloques/{bloque.Id}/programas/{_programa.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        Assert.True(bloque.EstaAsociadoAPrograma(_programa.Id));
+    }
+
+    [Fact]
+    public async Task DesasociarPrograma_IdVacio_Responde400()
+    {
+        using HttpClient client = CrearCliente();
+        using var respuesta = await client.DeleteAsync($"/api/bloques/{Guid.Empty}/programas/{_programa.Id}");
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
     private string CuerpoCrear(
         string descripcion = Descripcion,
         string tipoActividad = "teoria",
@@ -105,10 +170,11 @@ public sealed class BloquesEndpointsTests : IClassFixture<TimeblockApiFactory>
         Assert.Equal(
             new[]
             {
-                "asignaturaId", "coordinadorId", "descripcion", "id",
+                "activo", "asignaturaId", "coordinadorId", "descripcion", "id",
                 "nivelComplejidad", "programasIds", "tipoActividad",
             },
             json.EnumerateObject().Select(p => p.Name).Order().ToArray());
+        Assert.True(json.GetProperty("activo").GetBoolean());
         Assert.Equal(Descripcion, json.GetProperty("descripcion").GetString());
         Assert.Equal("teoria", json.GetProperty("tipoActividad").GetString());
         Assert.Equal("medio", json.GetProperty("nivelComplejidad").GetString());

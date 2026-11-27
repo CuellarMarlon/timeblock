@@ -22,6 +22,7 @@ export interface BloqueEnHorario {
   horaFin: string | null;
   periodoImp: string | null;
   aulaId: string | null;
+  bloqueActivo?: boolean;
 }
 
 export interface Horario {

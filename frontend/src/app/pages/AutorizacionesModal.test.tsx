@@ -1,14 +1,16 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   actualizarAutorizacion,
   crearAutorizacion,
+  eliminarAutorizacion,
   listarAutorizaciones,
   type Autorizacion,
   type Persona,
 } from "../../api/persons";
 import { listarProgramas } from "../../api/program";
+import { ApiError } from "../../api/errors";
 import { AutorizacionesModal } from "./AutorizacionesModal";
 
 vi.mock("../../api/persons");
@@ -17,6 +19,7 @@ vi.mock("../../api/program");
 const listar = vi.mocked(listarAutorizaciones);
 const crear = vi.mocked(crearAutorizacion);
 const actualizar = vi.mocked(actualizarAutorizacion);
+const eliminar = vi.mocked(eliminarAutorizacion);
 
 const coordinador: Persona = {
   id: "c1",
@@ -212,5 +215,97 @@ describe("AutorizacionesModal", () => {
 
     expect(await screen.findByRole("button", { name: NUEVA })).toBeInTheDocument();
     expect(crear).not.toHaveBeenCalled();
+  });
+
+  it("permite cancelar la eliminación sin llamar a la API", async () => {
+    const user = userEvent.setup();
+    listar.mockResolvedValue([autorizacion]);
+    renderModal();
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Eliminar autorización de Ingeniería Informática desde 2026-09-07",
+      }),
+    );
+    const dialogo = screen.getByRole("dialog", { name: "Confirmar eliminación" });
+    expect(within(dialogo).getByText("2026-09-07")).toBeInTheDocument();
+    expect(within(dialogo).getByText("Luis García")).toBeInTheDocument();
+    await user.click(within(dialogo).getByRole("button", { name: "Cancelar" }));
+    expect(eliminar).not.toHaveBeenCalled();
+    expect(await screen.findByText("Ingeniería Informática")).toBeInTheDocument();
+  });
+
+  it("elimina la autorización elegida y recarga el listado", async () => {
+    const user = userEvent.setup();
+    listar.mockResolvedValue([autorizacion]);
+    eliminar.mockResolvedValue(undefined);
+    renderModal();
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Eliminar autorización de Ingeniería Informática desde 2026-09-07",
+      }),
+    );
+    listar.mockResolvedValue([]);
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(eliminar).toHaveBeenCalledWith("c1", "p1", "2026-09-07");
+    expect(await screen.findByText("Autorización eliminada correctamente.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Este coordinador todavía no tiene autorizaciones."),
+    ).toBeInTheDocument();
+  });
+
+  it("muestra el conflicto y conserva la autorización", async () => {
+    const user = userEvent.setup();
+    listar.mockResolvedValue([autorizacion]);
+    eliminar.mockRejectedValue(
+      new ApiError(409, { detail: "Un horario utiliza esta autorización." }),
+    );
+    renderModal();
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Eliminar autorización de Ingeniería Informática desde 2026-09-07",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(await screen.findByText("Un horario utiliza esta autorización.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(await screen.findByText("2026-09-07")).toBeInTheDocument();
+  });
+
+  it("mantiene la confirmación abierta durante la eliminación", async () => {
+    const user = userEvent.setup();
+    listar.mockResolvedValue([autorizacion]);
+    eliminar.mockReturnValue(new Promise<void>(() => {}));
+    const cerrar = vi.fn();
+    render(<AutorizacionesModal coordinador={coordinador} onClose={cerrar} />);
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Eliminar autorización de Ingeniería Informática desde 2026-09-07",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Confirmar eliminación" }));
+    expect(screen.getByRole("button", { name: "Eliminando…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("dialog", { name: "Confirmar eliminación" })).toBeInTheDocument();
+    expect(cerrar).not.toHaveBeenCalled();
+    expect(eliminar).toHaveBeenCalledTimes(1);
+  });
+
+  it("muestra el conflicto al actualizar vigencia y mantiene el formulario", async () => {
+    const user = userEvent.setup();
+    listar.mockResolvedValue([autorizacion]);
+    actualizar.mockRejectedValue(
+      new ApiError(409, { detail: "El cambio invalidaría horarios existentes." }),
+    );
+    renderModal();
+    await user.click(
+      await screen.findByRole("button", { name: "Editar autorización de Ingeniería Informática" }),
+    );
+    cambiarFecha("Fecha de fin (opcional)", "2026-10-01");
+    await guardar(user);
+    expect(
+      await screen.findByText("El cambio invalidaría horarios existentes."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Fecha de fin (opcional)")).toHaveValue("2026-10-01");
   });
 });

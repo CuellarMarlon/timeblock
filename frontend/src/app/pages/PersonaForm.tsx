@@ -159,8 +159,9 @@ export function PersonaForm({ persona, coordinadores, onSaved, onCancel }: Perso
             >
               <option value="">Selecciona un coordinador</option>
               {coordinadores.map((c) => (
-                <option key={c.id} value={c.id}>
+                <option key={c.id} value={c.id} disabled={c.activo === false}>
                   {c.nombre}
+                  {c.activo === false ? " (inactivo)" : ""}
                 </option>
               ))}
             </select>
@@ -192,7 +193,11 @@ export function PersonaForm({ persona, coordinadores, onSaved, onCancel }: Perso
         <button type="button" className="btn" onClick={onCancel}>
           Cancelar
         </button>
-        <button type="submit" className="btn btn-primary" disabled={guardar.state.status === "loading"}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={guardar.state.status === "loading"}
+        >
           {guardar.state.status === "loading" ? "Guardando…" : "Guardar persona"}
         </button>
       </div>

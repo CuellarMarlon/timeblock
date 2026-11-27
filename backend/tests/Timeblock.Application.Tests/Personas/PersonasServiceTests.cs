@@ -78,12 +78,65 @@ public sealed class PersonasServiceTests
             new PersonaFilter(null, null, 1, 101), CancellationToken.None));
     }
 
+    [Fact]
+    public async Task EliminarAutorizacion_EliminaSoloLaClaveYRechazaRepeticion()
+    {
+        var repository = new FakePersonaRepository();
+        var service = new PersonasService(repository);
+        Guid coordinador = Guid.NewGuid(), programa = Guid.NewGuid();
+        var fecha = new DateOnly(2026, 1, 1);
+        repository.Autorizaciones.Add((coordinador, programa, fecha));
+        repository.Autorizaciones.Add((coordinador, programa, fecha.AddDays(1)));
+        await service.EliminarAutorizacionAsync(coordinador, programa, fecha, CancellationToken.None);
+        Assert.DoesNotContain((coordinador, programa, fecha), repository.Autorizaciones);
+        Assert.Contains((coordinador, programa, fecha.AddDays(1)), repository.Autorizaciones);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() =>
+            service.EliminarAutorizacionAsync(coordinador, programa, fecha, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task EliminarAutorizacion_IdVacio_RechazaLaSolicitud()
+    {
+        var service = new PersonasService(new FakePersonaRepository());
+        var fecha = new DateOnly(2026, 1, 1);
+        await Assert.ThrowsAsync<InvalidRequestException>(() =>
+            service.EliminarAutorizacionAsync(Guid.Empty, Guid.NewGuid(), fecha, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidRequestException>(() =>
+            service.EliminarAutorizacionAsync(Guid.NewGuid(), Guid.Empty, fecha, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task EliminarPersona_ExistenteEliminaYRepetidaDevuelveNotFound()
+    {
+        var repository = new FakePersonaRepository();
+        var persona = Persona.Crear(Guid.NewGuid(), "Jefe", new PerfilJefeDepartamento());
+        repository.Personas.Add(persona.Id, persona);
+        var service = new PersonasService(repository);
+        await service.EliminarAsync(persona.Id, CancellationToken.None);
+        Assert.Empty(repository.Personas);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() => service.EliminarAsync(persona.Id, CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidRequestException>(() => service.EliminarAsync(Guid.Empty, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task CambiarEstado_InactivaYReactivaPersona()
+    {
+        var repository = new FakePersonaRepository();
+        var persona = Persona.Crear(Guid.NewGuid(), "Jefe", new PerfilJefeDepartamento());
+        repository.Personas.Add(persona.Id, persona);
+        var service = new PersonasService(repository);
+        Assert.False((await service.CambiarEstadoAsync(persona.Id, false, CancellationToken.None)).Activo);
+        Assert.True((await service.CambiarEstadoAsync(persona.Id, true, CancellationToken.None)).Activo);
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() => service.CambiarEstadoAsync(Guid.NewGuid(), false, CancellationToken.None));
+    }
+
     private sealed class FakePersonaRepository : IPersonaRepository
     {
         public Dictionary<Guid, Persona> Personas { get; } = [];
         public HashSet<Guid> Coordinators { get; } = [];
         public HashSet<Guid> Programs { get; } = [];
         public int CoordinatorChecks { get; private set; }
+        public HashSet<(Guid, Guid, DateOnly)> Autorizaciones { get; } = [];
 
         public Task<bool> ExisteCoordinadorAsync(Guid id, CancellationToken ct)
         {
@@ -102,11 +155,14 @@ public sealed class PersonasServiceTests
         public Task<PagedResult<Persona>> ListarAsync(PersonaFilter filter, CancellationToken ct) =>
             Task.FromResult(new PagedResult<Persona>(Personas.Values.ToArray(), filter.Page, filter.PageSize, Personas.Count));
         public Task GuardarCambiosAsync(Persona persona, CancellationToken ct) => Task.CompletedTask;
+        public Task<bool> EliminarAsync(Guid id, CancellationToken ct) => Task.FromResult(Personas.Remove(id));
         public Task<IReadOnlyList<AutorizacionCoordinador>> ListarAutorizacionesAsync(Guid id, AutorizacionFilter filter, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<AutorizacionCoordinador>>([]);
         public Task AgregarAutorizacionAsync(AutorizacionCoordinador authorization, CancellationToken ct) => Task.CompletedTask;
         public Task<AutorizacionCoordinador?> ObtenerAutorizacionAsync(Guid coordinatorId, Guid programId, DateOnly start, CancellationToken ct) =>
             Task.FromResult<AutorizacionCoordinador?>(null);
         public Task GuardarAutorizacionAsync(AutorizacionCoordinador authorization, CancellationToken ct) => Task.CompletedTask;
+        public Task<bool> EliminarAutorizacionAsync(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken ct) =>
+            Task.FromResult(Autorizaciones.Remove((coordinadorId, programaId, fechaInicio)));
     }
 }

@@ -37,6 +37,7 @@ public sealed class AutorizacionesController(PersonasService personas) : Control
     [ProducesResponseType<AutorizacionResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<AutorizacionResponse>> Actualizar(
         Guid coordinadorId, Guid programaId, DateOnly fechaInicio,
         ActualizarAutorizacionRequest request, CancellationToken ct)
@@ -44,5 +45,16 @@ public sealed class AutorizacionesController(PersonasService personas) : Control
         var result = await personas.ActualizarAutorizacionAsync(coordinadorId, programaId, fechaInicio,
             request.FechaFin, request.PuedeGenerar, request.PuedeValidar, ct);
         return Ok(AutorizacionResponse.FromDomain(result));
+    }
+
+    [HttpDelete("{programaId:guid}/{fechaInicio}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Eliminar(Guid coordinadorId, Guid programaId, DateOnly fechaInicio, CancellationToken ct)
+    {
+        await personas.EliminarAutorizacionAsync(coordinadorId, programaId, fechaInicio, ct);
+        return NoContent();
     }
 }

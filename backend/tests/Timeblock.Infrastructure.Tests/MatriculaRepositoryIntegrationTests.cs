@@ -133,4 +133,55 @@ public sealed class MatriculaRepositoryIntegrationTests
 
         await transaction.RollbackAsync();
     }
+
+    [PostgreSqlFact]
+    public async Task Desmatricular_EliminaSoloLaRelacionYPermiteMatricularDeNuevo()
+    {
+        await using var db = new TimeblockDbContext(Opciones());
+        await db.Database.MigrateAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        var personas = new PersonasService(new PersonaRepository(db));
+        var service = new MatriculasService(new MatriculaRepository(db));
+        var ct = CancellationToken.None;
+
+        Persona coordinador = await personas.CrearAsync(
+            new CrearPersonaCommand("Coordinador prueba desmatriculación", new PerfilCoordinadorCrearCommand("Informática")), ct);
+
+        Persona estudiante = await personas.CrearAsync(
+            new CrearPersonaCommand("Estudiante prueba desmatriculación", new PerfilEstudianteCrearCommand(20, "C311", coordinador.Id)), ct);
+
+        Guid programaId = Guid.NewGuid();
+        Guid otroProgramaId = Guid.NewGuid();
+
+        db.Programas.Add(ProgramaAcademico.Crear(programaId, $"Programa prueba {programaId}", "Plan de prueba"));
+
+        db.Programas.Add(ProgramaAcademico.Crear(otroProgramaId, $"Otro programa prueba {otroProgramaId}", "Plan de prueba"));
+
+        await db.SaveChangesAsync(ct);
+
+        await service.MatricularAsync(programaId, estudiante.Id, ct);
+        await service.MatricularAsync(otroProgramaId, estudiante.Id, ct);
+
+        await service.DesmatricularAsync(programaId, estudiante.Id, ct);
+
+        db.ChangeTracker.Clear();
+
+        Assert.False(await db.Matriculas.AnyAsync(m => m.EstudianteId == estudiante.Id && m.ProgramaId == programaId, ct));
+
+        Assert.True(await db.Matriculas.AnyAsync(m => m.EstudianteId == estudiante.Id && m.ProgramaId == otroProgramaId,
+            ct));
+
+        Assert.True(await db.Estudiantes.AnyAsync(e => e.IdEstudiante == estudiante.Id, ct));
+
+        Assert.True(await db.Programas.AnyAsync(p => p.Id == programaId, ct));
+
+        await Assert.ThrowsAsync<ResourceNotFoundException>(() => service.DesmatricularAsync(programaId, estudiante.Id, ct));
+
+        await service.MatricularAsync(programaId, estudiante.Id, ct);
+
+        Assert.True(await db.Matriculas.AnyAsync(m => m.EstudianteId == estudiante.Id && m.ProgramaId == programaId, ct));
+
+        await transaction.RollbackAsync(ct);
+    }
 }
