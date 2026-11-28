@@ -5,13 +5,27 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { ApiError } from "../../api/errors";
 import { AulaEditarPage } from "./AulaEditarPage";
 
-const mocks = vi.hoisted(() => ({ obtenerAula: vi.fn(), actualizarAula: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  obtenerAula: vi.fn(),
+  actualizarAula: vi.fn(),
+  obtenerSesion: vi.fn(),
+}));
+
+vi.mock("../../api/sesion", () => ({ obtenerSesion: mocks.obtenerSesion }));
 
 vi.mock("../../api/aulas", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/aulas")>()),
   obtenerAula: mocks.obtenerAula,
   actualizarAula: mocks.actualizarAula,
 }));
+
+const administrador = {
+  cuentaId: "c1",
+  usuario: "admin",
+  rol: "administrador",
+  personaId: null,
+  nombre: null,
+};
 
 const aula = { id: "a1", edificio: "Edificio A", capacidad: 30 };
 
@@ -34,13 +48,13 @@ function renderPagina() {
 describe("AulaEditarPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.obtenerSesion.mockResolvedValue(administrador);
   });
 
   it("carga el aula y muestra sus datos en el formulario", async () => {
     mocks.obtenerAula.mockResolvedValue(aula);
     renderPagina();
 
-    expect(screen.getByText("Cargando aula…")).toBeInTheDocument();
     expect(await screen.findByLabelText("Edificio")).toHaveValue("Edificio A");
     expect(screen.getByLabelText("Capacidad")).toHaveValue(30);
     expect(mocks.obtenerAula.mock.calls[0][0]).toBe("a1");
@@ -111,5 +125,42 @@ describe("AulaEditarPage", () => {
     await user.click(screen.getByRole("button", { name: "Reintentar" }));
 
     expect(await screen.findByLabelText("Edificio")).toHaveValue("Edificio A");
+  });
+
+  it("muestra que se está cargando el aula mientras llega", async () => {
+    mocks.obtenerAula.mockReturnValue(new Promise(() => {}));
+    renderPagina();
+
+    expect(await screen.findByText("Cargando aula…")).toBeInTheDocument();
+  });
+
+  it("no carga el aula ni muestra el formulario si el rol no puede gestionar aulas", async () => {
+    mocks.obtenerSesion.mockResolvedValue({ ...administrador, rol: "estudiante" });
+    mocks.obtenerAula.mockResolvedValue(aula);
+    renderPagina();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("La operación no está permitida.");
+    expect(mocks.obtenerAula).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText("Edificio")).not.toBeInTheDocument();
+  });
+
+  it("pide iniciar sesión cuando no hay sesión", async () => {
+    mocks.obtenerSesion.mockRejectedValue(new ApiError(401));
+    renderPagina();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Inicia sesión de nuevo.");
+    expect(mocks.obtenerAula).not.toHaveBeenCalled();
+  });
+
+  it("muestra el mensaje cuando la API responde 403 al guardar", async () => {
+    const user = userEvent.setup();
+    mocks.obtenerAula.mockResolvedValue(aula);
+    mocks.actualizarAula.mockRejectedValue(new ApiError(403));
+    renderPagina();
+
+    await user.type(await screen.findByLabelText("Edificio"), " B");
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("La operación no está permitida.");
   });
 });

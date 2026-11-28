@@ -3,6 +3,7 @@ import type { ProblemDetails } from "./types";
 /** Mensajes por código cuando la API no envía un título. */
 const MENSAJES_POR_ESTADO: Record<number, string> = {
   400: "La solicitud contiene datos inválidos.",
+  401: "Tu sesión no es válida o ha expirado. Inicia sesión de nuevo.",
   403: "La operación no está permitida.",
   404: "El recurso solicitado no existe.",
   409: "La operación entra en conflicto con datos existentes.",

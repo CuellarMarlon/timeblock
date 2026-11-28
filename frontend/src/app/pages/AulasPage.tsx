@@ -1,8 +1,11 @@
 import { useCallback, useId, useState, type FormEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { listarAulas, type FiltrosAulas } from "../../api/aulas";
+import { ApiError } from "../../api/errors";
 import { useApiQuery } from "../../api/useApiQuery";
+import { usePermisosAulas } from "../permisosAulas";
 import { Pagination } from "../components/Pagination";
+import { ErrorMessage } from "../components/ErrorMessage";
 import { QueryContent } from "../components/QueryContent";
 import { SuccessMessage } from "../components/SuccessMessage";
 import "./BloquesHorarios.css";
@@ -14,6 +17,7 @@ export function AulasPage() {
   const headingId = useId();
   const location = useLocation();
   const aviso = (location.state as { aviso?: string } | null)?.aviso;
+  const permisos = usePermisosAulas();
 
   const [filtros, setFiltros] = useState<FiltrosAulas>({});
   const [edificio, setEdificio] = useState("");
@@ -31,6 +35,19 @@ export function AulasPage() {
     setPage(1);
   }
 
+  if (permisos.sinSesion) {
+    return (
+      <section className="module" aria-labelledby={headingId}>
+        <header className="page-header">
+          <div>
+            <h1 id={headingId}>Aulas</h1>
+          </div>
+        </header>
+        <ErrorMessage error={new ApiError(401)} />
+      </section>
+    );
+  }
+
   return (
     <section className="module" aria-labelledby={headingId}>
       <header className="page-header">
@@ -38,9 +55,11 @@ export function AulasPage() {
           <h1 id={headingId}>Aulas</h1>
           <p>Registro y consulta de las aulas disponibles, con su edificio y capacidad.</p>
         </div>
-        <Link className="btn btn-primary" to="/aulas/nueva">
-          + Nueva aula
-        </Link>
+        {permisos.puedeGestionar && (
+          <Link className="btn btn-primary" to="/aulas/nueva">
+            + Nueva aula
+          </Link>
+        )}
       </header>
 
       {aviso && <SuccessMessage message={aviso} />}
@@ -75,9 +94,11 @@ export function AulasPage() {
                 <tr>
                   <th scope="col">Edificio</th>
                   <th scope="col">Capacidad</th>
-                  <th scope="col">
-                    <span className="visually-hidden">Acciones</span>
-                  </th>
+                  {permisos.puedeGestionar && (
+                    <th scope="col">
+                      <span className="visually-hidden">Acciones</span>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -85,15 +106,17 @@ export function AulasPage() {
                   <tr key={aula.id}>
                     <td>{aula.edificio}</td>
                     <td>{aula.capacidad}</td>
-                    <td className="cell-actions">
-                      <Link
-                        className="btn-icon"
-                        to={`/aulas/${aula.id}/editar`}
-                        aria-label={`Editar aula de ${aula.edificio} con capacidad ${aula.capacidad}`}
-                      >
-                        ✎
-                      </Link>
-                    </td>
+                    {permisos.puedeGestionar && (
+                      <td className="cell-actions">
+                        <Link
+                          className="btn-icon"
+                          to={`/aulas/${aula.id}/editar`}
+                          aria-label={`Editar aula de ${aula.edificio} con capacidad ${aula.capacidad}`}
+                        >
+                          ✎
+                        </Link>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

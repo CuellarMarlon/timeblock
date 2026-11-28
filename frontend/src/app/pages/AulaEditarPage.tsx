@@ -3,16 +3,30 @@ import { useParams } from "react-router-dom";
 import { obtenerAula } from "../../api/aulas";
 import { useApiQuery } from "../../api/useApiQuery";
 import { QueryContent } from "../components/QueryContent";
+import { RequierePermisoAulas } from "../components/RequierePermisoAulas";
 import { AulaForm } from "./AulaForm";
 import "./BloquesHorarios.css";
 import "./ProgramasPage.css";
 
+function AulaEditarContenido({ aulaId }: { aulaId: string }) {
+  const load = useCallback((signal: AbortSignal) => obtenerAula(aulaId, signal), [aulaId]);
+  const aula = useApiQuery(load);
+
+  return (
+    <QueryContent
+      query={aula}
+      onRetry={aula.reload}
+      loadingLabel="Cargando aula…"
+      isEmpty={() => false}
+    >
+      {(datos) => <AulaForm key={datos.id} aula={datos} />}
+    </QueryContent>
+  );
+}
+
 export function AulaEditarPage() {
   const headingId = useId();
   const { aulaId = "" } = useParams();
-
-  const load = useCallback((signal: AbortSignal) => obtenerAula(aulaId, signal), [aulaId]);
-  const aula = useApiQuery(load);
 
   return (
     <section className="module" aria-labelledby={headingId}>
@@ -23,14 +37,9 @@ export function AulaEditarPage() {
         </div>
       </header>
 
-      <QueryContent
-        query={aula}
-        onRetry={aula.reload}
-        loadingLabel="Cargando aula…"
-        isEmpty={() => false}
-      >
-        {(datos) => <AulaForm key={datos.id} aula={datos} />}
-      </QueryContent>
+      <RequierePermisoAulas>
+        <AulaEditarContenido aulaId={aulaId} />
+      </RequierePermisoAulas>
     </section>
   );
 }

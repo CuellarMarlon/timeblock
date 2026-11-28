@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { RequierePermisoAulas } from "../components/RequierePermisoAulas";
 import { AulaForm } from "./AulaForm";
 import "./BloquesHorarios.css";
 import "./ProgramasPage.css";
@@ -15,7 +16,9 @@ export function AulaNuevaPage() {
         </div>
       </header>
 
-      <AulaForm />
+      <RequierePermisoAulas>
+        <AulaForm />
+      </RequierePermisoAulas>
     </section>
   );
 }

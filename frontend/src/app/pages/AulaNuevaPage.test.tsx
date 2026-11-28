@@ -5,12 +5,22 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { ApiError } from "../../api/errors";
 import { AulaNuevaPage } from "./AulaNuevaPage";
 
-const mocks = vi.hoisted(() => ({ crearAula: vi.fn() }));
+const mocks = vi.hoisted(() => ({ crearAula: vi.fn(), obtenerSesion: vi.fn() }));
+
+vi.mock("../../api/sesion", () => ({ obtenerSesion: mocks.obtenerSesion }));
 
 vi.mock("../../api/aulas", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/aulas")>()),
   crearAula: mocks.crearAula,
 }));
+
+const administrador = {
+  cuentaId: "c1",
+  usuario: "admin",
+  rol: "administrador",
+  personaId: null,
+  nombre: null,
+};
 
 function Listado() {
   const aviso = (useLocation().state as { aviso?: string } | null)?.aviso;
@@ -26,6 +36,11 @@ function renderPagina() {
       </Routes>
     </MemoryRouter>,
   );
+}
+
+async function renderConFormulario() {
+  renderPagina();
+  await screen.findByLabelText("Edificio");
 }
 
 async function llenar(
@@ -44,10 +59,11 @@ async function llenar(
 describe("AulaNuevaPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.obtenerSesion.mockResolvedValue(administrador);
   });
 
-  it("muestra el formulario vacío y no pide ni muestra un tipo de aula", () => {
-    renderPagina();
+  it("muestra el formulario vacío y no pide ni muestra un tipo de aula", async () => {
+    await renderConFormulario();
 
     expect(screen.getByRole("heading", { name: "Nueva aula" })).toBeInTheDocument();
     expect(screen.getByLabelText("Edificio")).toHaveValue("");
@@ -57,7 +73,7 @@ describe("AulaNuevaPage", () => {
 
   it("valida los campos obligatorios sin llamar a la API", async () => {
     const user = userEvent.setup();
-    renderPagina();
+    await renderConFormulario();
 
     await user.click(screen.getByRole("button", { name: "Crear aula" }));
 
@@ -74,7 +90,7 @@ describe("AulaNuevaPage", () => {
     ["1001", "La capacidad no puede superar 1000."],
   ])("rechaza la capacidad %s", async (capacidad, mensaje) => {
     const user = userEvent.setup();
-    renderPagina();
+    await renderConFormulario();
 
     await llenar(user, "Edificio A", capacidad);
     await user.click(screen.getByRole("button", { name: "Crear aula" }));
@@ -85,7 +101,7 @@ describe("AulaNuevaPage", () => {
 
   it("rechaza un edificio demasiado largo", async () => {
     const user = userEvent.setup();
-    renderPagina();
+    await renderConFormulario();
 
     await llenar(user, "E".repeat(101), "30");
     await user.click(screen.getByRole("button", { name: "Crear aula" }));
@@ -99,7 +115,7 @@ describe("AulaNuevaPage", () => {
   it("crea el aula con los datos limpios y vuelve al listado con un aviso", async () => {
     const user = userEvent.setup();
     mocks.crearAula.mockResolvedValue({ id: "a1", edificio: "Edificio A", capacidad: 30 });
-    renderPagina();
+    await renderConFormulario();
 
     await llenar(user, "  Edificio A  ", "30");
     await user.click(screen.getByRole("button", { name: "Crear aula" }));
@@ -119,7 +135,7 @@ describe("AulaNuevaPage", () => {
         errors: { capacidad: ["La capacidad debe ser mayor que cero."] },
       }),
     );
-    renderPagina();
+    await renderConFormulario();
 
     await llenar(user, "Edificio A", "30");
     await user.click(screen.getByRole("button", { name: "Crear aula" }));
@@ -135,11 +151,57 @@ describe("AulaNuevaPage", () => {
   it("bloquea el botón mientras se guarda", async () => {
     const user = userEvent.setup();
     mocks.crearAula.mockReturnValue(new Promise(() => {}));
-    renderPagina();
+    await renderConFormulario();
 
     await llenar(user, "Edificio A", "30");
     await user.click(screen.getByRole("button", { name: "Crear aula" }));
 
     expect(await screen.findByRole("button", { name: "Guardando…" })).toBeDisabled();
+  });
+
+  it.each(["coordinador", "estudiante", "jefeDepartamento"])(
+    "no deja crear aulas al rol %s",
+    async (rol) => {
+      mocks.obtenerSesion.mockResolvedValue({ ...administrador, rol });
+      renderPagina();
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("La operación no está permitida.");
+      expect(screen.queryByLabelText("Edificio")).not.toBeInTheDocument();
+    },
+  );
+
+  it("pide iniciar sesión cuando no hay sesión", async () => {
+    mocks.obtenerSesion.mockRejectedValue(new ApiError(401));
+    renderPagina();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Inicia sesión de nuevo.");
+    expect(screen.queryByLabelText("Edificio")).not.toBeInTheDocument();
+  });
+
+  it("muestra que se están comprobando los permisos antes de mostrar el formulario", async () => {
+    mocks.obtenerSesion.mockReturnValue(new Promise(() => {}));
+    renderPagina();
+
+    expect(await screen.findByText("Comprobando permisos…")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Edificio")).not.toBeInTheDocument();
+  });
+
+  it("deja crear mientras el servidor no tenga el endpoint de sesión", async () => {
+    mocks.obtenerSesion.mockRejectedValue(new ApiError(404));
+    await renderConFormulario();
+
+    expect(screen.getByRole("button", { name: "Crear aula" })).toBeEnabled();
+  });
+
+  it("muestra el mensaje y conserva lo escrito cuando la API responde 403 al crear", async () => {
+    const user = userEvent.setup();
+    mocks.crearAula.mockRejectedValue(new ApiError(403));
+    await renderConFormulario();
+
+    await llenar(user, "Edificio A", "30");
+    await user.click(screen.getByRole("button", { name: "Crear aula" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("La operación no está permitida.");
+    expect(screen.getByLabelText("Edificio")).toHaveValue("Edificio A");
   });
 });

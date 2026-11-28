@@ -1,16 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { ApiError } from "../../api/errors";
 import { AulasPage } from "./AulasPage";
 
-const mocks = vi.hoisted(() => ({ listarAulas: vi.fn() }));
+const mocks = vi.hoisted(() => ({ listarAulas: vi.fn(), obtenerSesion: vi.fn() }));
+
+vi.mock("../../api/sesion", () => ({ obtenerSesion: mocks.obtenerSesion }));
 
 vi.mock("../../api/aulas", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/aulas")>()),
   listarAulas: mocks.listarAulas,
 }));
+
+const administrador = {
+  cuentaId: "c1",
+  usuario: "admin",
+  rol: "administrador",
+  personaId: null,
+  nombre: null,
+};
 
 const aula = { id: "a1", edificio: "Edificio A", capacidad: 30 };
 
@@ -29,6 +39,7 @@ function renderPagina(estado?: unknown) {
 describe("AulasPage", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.obtenerSesion.mockResolvedValue(administrador);
   });
 
   it("muestra la carga y después las aulas con su edificio y capacidad", async () => {
@@ -40,9 +51,9 @@ describe("AulasPage", () => {
     const fila = await screen.findByRole("row", { name: /Edificio A/ });
     expect(fila).toHaveTextContent("30");
     expect(
-      screen.getByRole("link", { name: "Editar aula de Edificio A con capacidad 30" }),
+      await screen.findByRole("link", { name: "Editar aula de Edificio A con capacidad 30" }),
     ).toHaveAttribute("href", "/aulas/a1/editar");
-    expect(screen.getByRole("link", { name: "+ Nueva aula" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: "+ Nueva aula" })).toHaveAttribute(
       "href",
       "/aulas/nueva",
     );
@@ -113,5 +124,38 @@ describe("AulasPage", () => {
     renderPagina({ aviso: "Aula creada correctamente." });
 
     expect(await screen.findByText("Aula creada correctamente.")).toBeInTheDocument();
+  });
+
+  it.each(["coordinador", "estudiante", "jefeDepartamento"])(
+    "al rol %s solo le muestra la consulta",
+    async (rol) => {
+      mocks.obtenerSesion.mockResolvedValue({ ...administrador, rol });
+      mocks.listarAulas.mockResolvedValue(pagina([aula]));
+      renderPagina();
+
+      expect(await screen.findByRole("row", { name: /Edificio A/ })).toBeInTheDocument();
+      await act(async () => {});
+
+      expect(screen.queryByRole("link", { name: "+ Nueva aula" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: /Editar aula/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole("columnheader", { name: "Acciones" })).not.toBeInTheDocument();
+    },
+  );
+
+  it("pide iniciar sesión cuando no hay sesión", async () => {
+    mocks.obtenerSesion.mockRejectedValue(new ApiError(401));
+    mocks.listarAulas.mockResolvedValue(pagina([aula]));
+    renderPagina();
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Inicia sesión de nuevo.");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+  });
+
+  it("mantiene las acciones mientras el servidor no tenga el endpoint de sesión", async () => {
+    mocks.obtenerSesion.mockRejectedValue(new ApiError(404));
+    mocks.listarAulas.mockResolvedValue(pagina([aula]));
+    renderPagina();
+
+    expect(await screen.findByRole("link", { name: "+ Nueva aula" })).toBeInTheDocument();
   });
 });
