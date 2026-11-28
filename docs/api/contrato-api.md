@@ -93,6 +93,7 @@ No incluye generación automática, completar horas/periodo/aula de las impartic
 - [Matrículas](endpoints/matriculas.md)
 - [Bloques de contenido](endpoints/bloques.md)
 - [Horarios de armado manual](endpoints/horarios.md)
+- [Aulas](endpoints/aulas.md) (M6-06, en propuesta)
 
 ## Decisiones de modelo que afectan al contrato
 
