@@ -59,6 +59,17 @@ public sealed class FakeHorarioRepository : IHorarioRepository
         return Task.FromResult(encontrados);
     }
 
+    public HashSet<Guid> Aulas { get; } = [];
+
+    public Task<IReadOnlySet<Guid>> ObtenerAulasExistentesAsync(
+        IReadOnlyCollection<Guid> aulasIds,
+        CancellationToken ct)
+    {
+        Consultas++;
+        IReadOnlySet<Guid> existentes = aulasIds.Where(Aulas.Contains).ToHashSet();
+        return Task.FromResult(existentes);
+    }
+
     public Task AgregarAsync(Horario horario, CancellationToken ct)
     {
         if (ErrorAlGuardar is not null)

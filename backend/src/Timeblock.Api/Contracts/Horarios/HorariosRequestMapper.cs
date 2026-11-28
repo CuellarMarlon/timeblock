@@ -13,7 +13,12 @@ public static class HorariosRequestMapper
             request.PeriodoAcademico,
             request.CoordinadorId,
             request.Bloques
-                .Select(bloque => new BloqueEnHorarioCommand(bloque.BloqueId, bloque.Fecha))
+                .Select(bloque => new BloqueEnHorarioCommand(
+                    bloque.BloqueId,
+                    bloque.Fecha,
+                    bloque.HoraInicio,
+                    bloque.HoraFin,
+                    bloque.AulaId))
                 .ToArray());
     }
 }

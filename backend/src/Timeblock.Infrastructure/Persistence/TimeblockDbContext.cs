@@ -60,6 +60,9 @@ public sealed class TimeblockDbContext(
         modelBuilder.Ignore<Persona>();
         modelBuilder.Ignore<Perfil>();
 
+        // Restricciones de exclusión de BLOQUE_EN_HORARIO (RII04).
+        modelBuilder.HasPostgresExtension("btree_gist");
+
         modelBuilder.ApplyConfigurationsFromAssembly(
             typeof(TimeblockDbContext).Assembly);
 

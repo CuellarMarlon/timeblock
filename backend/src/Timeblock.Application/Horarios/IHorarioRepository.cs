@@ -23,6 +23,11 @@ public interface IHorarioRepository
         IReadOnlyCollection<Guid> bloquesIds,
         CancellationToken cancellationToken);
 
+    /// <summary>Devuelve los identificadores indicados que existen en AULA.</summary>
+    Task<IReadOnlySet<Guid>> ObtenerAulasExistentesAsync(
+        IReadOnlyCollection<Guid> aulasIds,
+        CancellationToken cancellationToken);
+
     Task AgregarAsync(Horario horario, CancellationToken cancellationToken);
 
     Task<Horario?> ObtenerAsync(Guid horarioId, CancellationToken cancellationToken);

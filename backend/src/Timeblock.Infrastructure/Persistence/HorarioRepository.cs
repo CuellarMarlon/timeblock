@@ -6,6 +6,7 @@ using Timeblock.Application.Horarios;
 using Timeblock.Domain.Bloques;
 using Timeblock.Domain.Horarios;
 using Timeblock.Domain.Personas;
+using Timeblock.Infrastructure.Persistence.Configurations;
 
 namespace Timeblock.Infrastructure.Persistence;
 
@@ -40,12 +41,26 @@ public sealed class HorarioRepository(TimeblockDbContext db) : IHorarioRepositor
             .ToListAsync(ct);
     }
 
-   
+    public async Task<IReadOnlySet<Guid>> ObtenerAulasExistentesAsync(
+        IReadOnlyCollection<Guid> aulasIds,
+        CancellationToken ct)
+    {
+        Guid[] ids = aulasIds.ToArray();
+
+        return (await db.Aulas
+                .AsNoTracking()
+                .Where(aula => ids.Contains(aula.IdAula))
+                .Select(aula => aula.IdAula)
+                .ToListAsync(ct))
+            .ToHashSet();
+    }
+
+    /// <summary>
     /// El horario y sus asociaciones se guardan con una sola llamada a
     /// <c>SaveChangesAsync</c>, que PostgreSQL ejecuta en una transacción: si
     /// algo falla no queda un horario parcial. El contexto agrega en esa misma
     /// operación las fechas que aún no existan.
-   
+    /// </summary>
     public async Task AgregarAsync(Horario horario, CancellationToken ct)
     {
         db.Horarios.Add(horario);
@@ -53,6 +68,22 @@ public sealed class HorarioRepository(TimeblockDbContext db) : IHorarioRepositor
         try
         {
             await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException error && OcupaAulaOcupada(error))
+        {
+            throw new ResourceConflictException(
+                "El aula ya tiene otra impartición que se solapa con ese intervalo.", ex);
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.ExclusionViolation,
+                ConstraintName: RestriccionesImparticion.HorarioSinSolapes,
+            })
+        {
+            throw new ResourceConflictException(
+                "La impartición se solapa con otra del mismo horario en esa fecha.", ex);
         }
         catch (DbUpdateException ex)
             when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
@@ -73,6 +104,17 @@ public sealed class HorarioRepository(TimeblockDbContext db) : IHorarioRepositor
                 "El horario hace referencia a datos que cambiaron o ya no existen.", ex);
         }
     }
+
+    /// <summary>
+    /// RII04: la restricción de exclusión rechaza intervalos solapados en la
+    /// misma aula y fecha, y el índice único de la clave alternativa del
+    /// diseño, dos imparticiones que empiezan a la vez en la misma aula.
+    /// </summary>
+    private static bool OcupaAulaOcupada(PostgresException error) =>
+        (error.SqlState == PostgresErrorCodes.ExclusionViolation &&
+         error.ConstraintName == RestriccionesImparticion.AulaSinSolapes) ||
+        (error.SqlState == PostgresErrorCodes.UniqueViolation &&
+         error.ConstraintName == RestriccionesImparticion.AulaFechaHoraInicio);
 
     public Task<Horario?> ObtenerAsync(Guid horarioId, CancellationToken ct) =>
         db.Horarios

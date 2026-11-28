@@ -82,7 +82,16 @@ public sealed class Horario
             autorizacion.FechaInicio);
     }
 
-    public void AgregarBloque(BloqueContenido bloque, DateOnly fecha)
+    /// <summary>
+    /// Agrega un bloque al horario en una fecha. Con <paramref name="programacion"/>
+    /// la impartición queda completa: su período es el del horario y no puede
+    /// solaparse con otra impartición completa del mismo horario, aunque use
+    /// otra aula.
+    /// </summary>
+    public void AgregarBloque(
+        BloqueContenido bloque,
+        DateOnly fecha,
+        ProgramacionImparticion? programacion = null)
     {
         ArgumentNullException.ThrowIfNull(bloque);
 
@@ -105,10 +114,24 @@ public sealed class Horario
                 TipoErrorDominio.Conflicto);
         }
 
-        _bloques.Add(
-            BloqueEnHorario.Crear(
+        BloqueEnHorario asociacion = programacion is null
+            ? BloqueEnHorario.Crear(Id, bloque.Id, fecha)
+            : BloqueEnHorario.Crear(
                 Id,
                 bloque.Id,
-                fecha));
+                fecha,
+                programacion.HoraInicio,
+                programacion.HoraFin,
+                PeriodoAcademico,
+                programacion.AulaId);
+
+        if (_bloques.Any(existente => existente.SeSolapaCon(asociacion)))
+        {
+            throw new DomainException(
+                "La impartición se solapa con otra del mismo horario en esa fecha.",
+                TipoErrorDominio.Conflicto);
+        }
+
+        _bloques.Add(asociacion);
     }
 }

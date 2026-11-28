@@ -68,6 +68,22 @@ public sealed class BloqueEnHorarioConfiguration
         })
             .IsUnique()
             .HasFilter("\"idAula\" IS NOT NULL AND \"horaInicio\" IS NOT NULL")
-            .HasDatabaseName("UX_BLOQUE_EN_HORARIO_AulaFechaHoraInicio");
+            .HasDatabaseName(RestriccionesImparticion.AulaFechaHoraInicio);
     }
+}
+
+/// <summary>
+/// Nombres de las restricciones de BLOQUE_EN_HORARIO que se traducen a errores
+/// de la API. Las de exclusión se crean en la migración
+/// <c>ImparticionesSinSolapes</c>, porque EF Core no las modela.
+/// </summary>
+public static class RestriccionesImparticion
+{
+    public const string AulaFechaHoraInicio = "UX_BLOQUE_EN_HORARIO_AulaFechaHoraInicio";
+
+    /// <summary>RII04: sin intervalos solapados en la misma aula y fecha.</summary>
+    public const string AulaSinSolapes = "EX_BLOQUE_EN_HORARIO_AulaSinSolapes";
+
+    /// <summary>Sin clases solapadas en el mismo horario, aunque usen otra aula.</summary>
+    public const string HorarioSinSolapes = "EX_BLOQUE_EN_HORARIO_HorarioSinSolapes";
 }

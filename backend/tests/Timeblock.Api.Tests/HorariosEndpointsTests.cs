@@ -418,4 +418,96 @@ public sealed class HorariosEndpointsTests : IClassFixture<TimeblockApiFactory>
 
         AssertProblema(respuesta, HttpStatusCode.BadRequest);
     }
+
+    // ---------------------------------------------------- Imparticiones (M6-07)
+
+    private Guid SembrarAula()
+    {
+        Guid aula = Guid.NewGuid();
+        _repositorio.Aulas.Add(aula);
+        return aula;
+    }
+
+    private static object Imparticion(
+        BloqueContenido bloque,
+        string fecha,
+        string? horaInicio,
+        string? horaFin,
+        Guid? aulaId) =>
+        new { bloqueId = bloque.Id, fecha, horaInicio, horaFin, aulaId };
+
+    [Fact]
+    public async Task Crear_ConImparticionCompleta_Responde201ConHorasAulaYPeriodo()
+    {
+        Guid aula = SembrarAula();
+        using HttpClient cliente = CrearCliente();
+
+        using HttpResponseMessage respuesta = await Post(cliente, Cuerpo(
+        [
+            Imparticion(_teoria, "2026-10-20", "08:00:00", "10:00:00", aula),
+            Bloque(_practica, "2026-10-22"),
+        ]));
+
+        Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
+        JsonElement bloques = (await respuesta.LeerJsonAsync()).GetProperty("bloques");
+        JsonElement completa = bloques.EnumerateArray()
+            .Single(b => b.GetProperty("bloqueId").GetGuid() == _teoria.Id);
+        Assert.Equal("08:00:00", completa.GetProperty("horaInicio").GetString());
+        Assert.Equal("10:00:00", completa.GetProperty("horaFin").GetString());
+        Assert.Equal(aula, completa.GetProperty("aulaId").GetGuid());
+        Assert.Equal("2026-2027", completa.GetProperty("periodoImp").GetString());
+
+        JsonElement sinProgramar = bloques.EnumerateArray()
+            .Single(b => b.GetProperty("bloqueId").GetGuid() == _practica.Id);
+        Assert.Equal(JsonValueKind.Null, sinProgramar.GetProperty("horaInicio").ValueKind);
+        Assert.Equal(JsonValueKind.Null, sinProgramar.GetProperty("periodoImp").ValueKind);
+    }
+
+    [Theory]
+    [InlineData("08:00:00", null, true)]
+    [InlineData("08:00:00", "10:00:00", false)]
+    [InlineData("10:00:00", "08:00:00", true)]
+    [InlineData("10:00:00", "10:00:00", true)]
+    [InlineData("8 en punto", "10:00:00", true)]
+    public async Task Crear_ConProgramacionIncompletaOInvalida_Responde400(
+        string? inicio,
+        string? fin,
+        bool conAula)
+    {
+        Guid? aula = conAula ? SembrarAula() : null;
+        using HttpClient cliente = CrearCliente();
+
+        using HttpResponseMessage respuesta = await Post(cliente, Cuerpo(
+            [Imparticion(_teoria, "2026-10-20", inicio, fin, aula)]));
+
+        AssertProblema(respuesta, HttpStatusCode.BadRequest);
+        Assert.Empty(_repositorio.Horarios);
+    }
+
+    [Fact]
+    public async Task Crear_ConAulaInexistente_Responde404()
+    {
+        using HttpClient cliente = CrearCliente();
+
+        using HttpResponseMessage respuesta = await Post(cliente, Cuerpo(
+            [Imparticion(_teoria, "2026-10-20", "08:00:00", "10:00:00", Guid.NewGuid())]));
+
+        AssertProblema(respuesta, HttpStatusCode.NotFound);
+        Assert.Empty(_repositorio.Horarios);
+    }
+
+    [Fact]
+    public async Task Crear_ConClasesSolapadasEnElMismoHorario_Responde409()
+    {
+        using HttpClient cliente = CrearCliente();
+
+        using HttpResponseMessage respuesta = await Post(cliente, Cuerpo(
+        [
+            Imparticion(_teoria, "2026-10-20", "08:00:00", "10:00:00", SembrarAula()),
+            Imparticion(_practica, "2026-10-20", "09:00:00", "11:00:00", SembrarAula()),
+        ]));
+
+        AssertProblema(respuesta, HttpStatusCode.Conflict);
+        Assert.Empty(_repositorio.Horarios);
+    }
 }

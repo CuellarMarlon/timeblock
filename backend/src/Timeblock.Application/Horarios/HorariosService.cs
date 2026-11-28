@@ -36,6 +36,11 @@ public sealed class HorariosService(IHorarioRepository horarios, TimeProvider re
             throw new InvalidRequestException("bloques contiene un identificador de bloque no válido.");
         }
 
+        foreach (BloqueEnHorarioCommand solicitado in solicitados)
+        {
+            ValidarProgramacion(solicitado);
+        }
+
         // Referencias (404), en el orden del contrato.
         if (!await horarios.ExisteProgramaAsync(command.ProgramaId, ct))
         {
@@ -59,6 +64,8 @@ public sealed class HorariosService(IHorarioRepository horarios, TimeProvider re
             solicitados.Select(solicitado => solicitado.BloqueId).Distinct().ToArray(),
             ct);
 
+        await ComprobarAulasAsync(solicitados, ct);
+
         // Reglas del dominio: el bloque debe poder usarse en el programa y no
         // repetirse en la misma fecha (409). Nada se guarda hasta que todo
         // el horario es válido.
@@ -72,7 +79,10 @@ public sealed class HorariosService(IHorarioRepository horarios, TimeProvider re
 
         foreach (BloqueEnHorarioCommand solicitado in solicitados)
         {
-            horario.AgregarBloque(bloques[solicitado.BloqueId], solicitado.Fecha);
+            horario.AgregarBloque(
+                bloques[solicitado.BloqueId],
+                solicitado.Fecha,
+                Programacion(solicitado));
         }
 
         await horarios.AgregarAsync(horario, ct);
@@ -141,6 +151,69 @@ public sealed class HorariosService(IHorarioRepository horarios, TimeProvider re
             ?? throw new DomainException(
                 "El coordinador no tiene una autorización vigente con permiso para generar horarios en el programa.",
                 TipoErrorDominio.AutorizacionNegocio);
+    }
+
+    /// <summary>
+    /// Hora de inicio, hora de fin y aula van juntas y el intervalo no puede
+    /// estar vacío (400).
+    /// </summary>
+    private static void ValidarProgramacion(BloqueEnHorarioCommand solicitado)
+    {
+        bool algunCampo = solicitado.HoraInicio.HasValue ||
+                          solicitado.HoraFin.HasValue ||
+                          solicitado.AulaId.HasValue;
+        if (!algunCampo)
+        {
+            return;
+        }
+
+        if (!solicitado.HoraInicio.HasValue ||
+            !solicitado.HoraFin.HasValue ||
+            !solicitado.AulaId.HasValue)
+        {
+            throw new InvalidRequestException(
+                "horaInicio, horaFin y aulaId deben informarse juntos.");
+        }
+
+        if (solicitado.AulaId == Guid.Empty)
+        {
+            throw new InvalidRequestException("bloques contiene un identificador de aula no válido.");
+        }
+
+        if (solicitado.HoraInicio.Value >= solicitado.HoraFin.Value)
+        {
+            throw new InvalidRequestException("horaInicio debe ser anterior a horaFin.");
+        }
+    }
+
+    private static ProgramacionImparticion? Programacion(BloqueEnHorarioCommand solicitado) =>
+        solicitado is { HoraInicio: { } inicio, HoraFin: { } fin, AulaId: { } aula }
+            ? new ProgramacionImparticion(inicio, fin, aula)
+            : null;
+
+    /// <summary>Las aulas indicadas deben existir (404).</summary>
+    private async Task ComprobarAulasAsync(
+        IReadOnlyCollection<BloqueEnHorarioCommand> solicitados,
+        CancellationToken ct)
+    {
+        Guid[] aulasIds = solicitados
+            .Where(solicitado => solicitado.AulaId.HasValue)
+            .Select(solicitado => solicitado.AulaId!.Value)
+            .Distinct()
+            .ToArray();
+        if (aulasIds.Length == 0)
+        {
+            return;
+        }
+
+        IReadOnlySet<Guid> existentes = await horarios.ObtenerAulasExistentesAsync(aulasIds, ct);
+        foreach (Guid aulaId in aulasIds)
+        {
+            if (!existentes.Contains(aulaId))
+            {
+                throw new ResourceNotFoundException($"No existe el aula '{aulaId}'.");
+            }
+        }
     }
 
     private async Task<Dictionary<Guid, BloqueContenido>> ObtenerBloquesPorIdAsync(

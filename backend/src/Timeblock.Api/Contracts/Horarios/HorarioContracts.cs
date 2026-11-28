@@ -4,11 +4,21 @@ using Timeblock.Domain.Horarios;
 
 namespace Timeblock.Api.Contracts.Horarios;
 
+/// <summary>
+/// Hora de inicio, hora de fin y aula son opcionales y van juntas. El período
+/// de impartición no se envía: es el período académico del horario.
+/// </summary>
 public sealed record BloqueEnHorarioRequest
 {
     public required Guid BloqueId { get; init; }
 
     public required DateOnly Fecha { get; init; }
+
+    public TimeOnly? HoraInicio { get; init; }
+
+    public TimeOnly? HoraFin { get; init; }
+
+    public Guid? AulaId { get; init; }
 }
 
 /// <summary>

@@ -66,6 +66,25 @@ public sealed class BloqueEnHorario
 
     public Guid? AulaId { get; }
 
+    /// <summary>Tiene hora de inicio, hora de fin, período y aula.</summary>
+    public bool EstaCompleta => HoraInicio.HasValue;
+
+    /// <summary>
+    /// Dos imparticiones completas de la misma fecha se solapan si sus
+    /// intervalos semiabiertos <c>[inicio, fin)</c> se cortan. Las contiguas,
+    /// en las que una termina cuando empieza la otra, no se solapan (RII04).
+    /// </summary>
+    public bool SeSolapaCon(BloqueEnHorario otra)
+    {
+        ArgumentNullException.ThrowIfNull(otra);
+
+        return EstaCompleta &&
+               otra.EstaCompleta &&
+               Fecha == otra.Fecha &&
+               HoraInicio!.Value < otra.HoraFin!.Value &&
+               otra.HoraInicio!.Value < HoraFin!.Value;
+    }
+
     public static BloqueEnHorario Crear(
         Guid horarioId,
         Guid bloqueId,

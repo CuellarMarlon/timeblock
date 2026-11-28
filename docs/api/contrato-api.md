@@ -84,7 +84,7 @@ Los valores se envían como cadenas sin tildes:
 
 Incluye personas y perfiles, autorizaciones de coordinadores por programa, programas, asignaturas, matrícula, bloques de contenido y horarios armados manualmente con una fecha para cada bloque.
 
-No incluye generación automática, completar horas/periodo/aula de las imparticiones, detección de conflictos de aulas, revisión y validación completa, asignación de horarios a estudiantes, asistencia, solicitudes de cambio, reportes ni consultas analíticas en ClickHouse. Esos puntos se completarán en hitos posteriores.
+No incluye generación automática, revisión y validación completa, asignación de horarios a estudiantes, asistencia, solicitudes de cambio, reportes ni consultas analíticas en ClickHouse. Esos puntos se completarán en hitos posteriores. En M6, la programación completa de imparticiones con hora y aula y la detección de solapamientos de aula (M6-07, #88) ya están en [Horarios](endpoints/horarios.md).
 
 ## Documentos por grupo
 
@@ -101,7 +101,7 @@ No incluye generación automática, completar horas/periodo/aula de las impartic
 3. La duplicidad técnica de bloques se define por asignatura, tipo de actividad y descripción normalizada: quitar espacios al inicio/final, colapsar espacios consecutivos e ignorar mayúsculas; los acentos se conservan. Detectar que dos descripciones distintas representan el mismo contenido se deja para una etapa posterior.
 4. Para crear el horario se exige una autorización vigente del coordinador para el programa, con `puedeGenerar = true`. El horario conserva la fecha de inicio de la autorización usada, junto con coordinador y programa.
 5. Durante M4, “borrador” es una descripción conceptual y no un estado persistido. El horario se almacena con estado `GENERADO`, que significa que está constituido. No se registra ni se distingue si se armó manualmente o mediante el algoritmo.
-6. M4 utiliza `BLOQUE_EN_HORARIO` para asociar horario, bloque y fecha, mediante la clave `(idHorario, idBloque, fecha)`. La fecha es obligatoria. En M4, `horaInicio`, `horaFin`, `periodoImp` e `idAula` pueden estar todos sin valor. Cuando se complete la impartición, los cuatro deben estar informados y debe cumplirse `horaInicio < horaFin`. La detección de conflictos de aula queda para un hito posterior. `cantTotalBloques` cuenta los bloques distintos asociados al horario, no las fechas en que aparecen.
+6. M4 utiliza `BLOQUE_EN_HORARIO` para asociar horario, bloque y fecha, mediante la clave `(idHorario, idBloque, fecha)`. La fecha es obligatoria. En M4, `horaInicio`, `horaFin`, `periodoImp` e `idAula` pueden estar todos sin valor. Cuando se complete la impartición, los cuatro deben estar informados y debe cumplirse `horaInicio < horaFin`. Desde M6-07, la API permite completarla al crear el horario (`periodoImp` es el periodo del horario) e impide los solapamientos de aula y dentro del mismo horario. `cantTotalBloques` cuenta los bloques distintos asociados al horario, no las fechas en que aparecen.
 
 Las convenciones de rutas, paginación y códigos de respuesta se deben mantener sincronizadas con el documento OpenAPI cuando se implementen los endpoints.
 

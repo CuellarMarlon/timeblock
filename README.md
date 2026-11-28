@@ -261,6 +261,10 @@ dotnet ef database update --project backend/src/Timeblock.Infrastructure/Timeblo
 - En `BLOQUE_EN_HORARIO`, la fecha es obligatoria; hora, periodo de impartición
   y aula son nulos en M4, o se informan juntos con horas válidas cuando exista
   una impartición completa.
+- Las imparticiones completas no pueden solaparse en la misma aula y fecha
+  (RII04) ni dentro del mismo horario. Lo garantizan dos restricciones de
+  exclusión con la extensión `btree_gist`, también ante altas simultáneas; los
+  intervalos contiguos se permiten.
 
 ### Pruebas PostgreSQL de Infrastructure
 

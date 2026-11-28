@@ -1,13 +1,13 @@
 # Horarios de armado manual
 
-**Requisitos relacionados:** parte de RF14–RF16 para el registro y la composición inicial del horario. La generación automática (RF12–RF13), la programación completa de imparticiones y la validación de conflictos de aula (RF17) quedan para hitos posteriores.
+**Requisitos relacionados:** parte de RF14 para el registro del horario; RF16 y RF17 (M6-07, #88) para programar imparticiones completas sin solapes de aula. La generación automática (RF12–RF13) queda para M6-09 y M6-10.
 **Convenciones comunes:** [Contrato de la API](../contrato-api.md).
 
 ## Alcance M4
 
 En M4, el horario se arma manualmente. “Borrador” describe conceptualmente que su programación todavía está incompleta; no es un estado persistido. El horario registra programa, periodo académico, coordinador creador, autorización utilizada, fecha de creación y estado `GENERADO`, que significa que está constituido. No se distingue si se armó manualmente o mediante el algoritmo.
 
-Cada asociación entre horario y bloque incluye una fecha obligatoria. En M4, hora de inicio, hora de fin, periodo de impartición y aula quedan sin completar.
+Cada asociación entre horario y bloque incluye una fecha obligatoria. Desde M6-07 puede programarse además como **impartición completa**, con hora de inicio, hora de fin y aula; el periodo de impartición es el periodo académico del horario. Si no se envían, la asociación queda sin programar, como en M4.
 
 ## Endpoints
 
@@ -27,7 +27,10 @@ Crear horario manual:
   "bloques": [
     {
       "bloqueId": "uuid",
-      "fecha": "2026-10-20"
+      "fecha": "2026-10-20",
+      "horaInicio": "08:00:00",
+      "horaFin": "10:00:00",
+      "aulaId": "uuid"
     },
     {
       "bloqueId": "uuid",
@@ -36,6 +39,8 @@ Crear horario manual:
   ]
 }
 ```
+
+En el ejemplo, el primer bloque queda programado como impartición completa y el segundo, sin programar.
 
 La API resuelve la autorización vigente del coordinador para el programa. El cliente no elige ni envía la fecha de inicio de esa autorización.
 
@@ -59,10 +64,10 @@ Respuesta `201 Created`:
       "tipoActividad": "teoria",
       "nivelComplejidad": "medio",
       "fecha": "2026-10-20",
-      "horaInicio": null,
-      "horaFin": null,
-      "periodoImp": null,
-      "aulaId": null,
+      "horaInicio": "08:00:00",
+      "horaFin": "10:00:00",
+      "periodoImp": "2026-2027",
+      "aulaId": "uuid",
       "bloqueActivo": true
     },
     {
@@ -88,7 +93,9 @@ Respuesta `201 Created`:
 - `bloques` debe contener al menos un elemento. Cada elemento requiere `bloqueId` y `fecha`.
 - El coordinador debe tener una autorización vigente para el programa, con `puedeGenerar = true`, al crear el horario. El horario conserva la fecha de inicio de esa autorización para la relación compuesta del modelo.
 - Todos los bloques deben existir y estar asociados al programa indicado. Un mismo bloque no puede repetirse para la misma fecha dentro del horario; puede programarse en fechas diferentes.
-- En M4, `horaInicio`, `horaFin`, `periodoImp` y `aulaId` quedan nulos. Cuando se complete una impartición, los cuatro campos serán obligatorios y deberá cumplirse `horaInicio < horaFin`.
+- `horaInicio`, `horaFin` y `aulaId` son opcionales, pero se envían los tres o ninguno, y debe cumplirse `horaInicio < horaFin`. Las horas usan el formato `HH:mm:ss`. El cliente no envía `periodoImp`: el servidor guarda el periodo académico del horario.
+- El aula debe existir.
+- Una impartición ocupa el intervalo semiabierto `[horaInicio, horaFin)` de su fecha. No puede solaparse con otra impartición de la misma aula y fecha, de este u otro horario (RF17, RII04), ni con otra del mismo horario aunque use otra aula. Los intervalos contiguos, en los que una termina cuando empieza la otra, sí se permiten.
 - `cantTotalBloques` se calcula contando los bloques distintos asociados al horario; si un mismo bloque aparece en varias fechas, cuenta una sola vez.
 - `bloqueActivo` muestra el estado actual del bloque sin eliminarlo de horarios anteriores.
 - La fecha de creación la determina el servidor en UTC.
@@ -100,15 +107,20 @@ Respuesta `201 Created`:
 
 M4 utiliza la relación ternaria existente `BLOQUE_EN_HORARIO`, con clave `(idHorario, idBloque, fecha)`. La fecha es obligatoria. Un mismo bloque puede aparecer en distintas fechas, pero no se puede repetir la misma combinación de horario, bloque y fecha. No se crea una relación adicional para la composición del horario.
 
-En M4, `horaInicio`, `horaFin`, `periodoImp` e `idAula` deben estar todos sin valor. Al completar una impartición, los cuatro campos deben informarse. La persistencia debe impedir que solo algunos estén informados y debe validar `horaInicio < horaFin` cuando exista una programación completa.
+`horaInicio`, `horaFin`, `periodoImp` e `idAula` están todos sin valor o todos informados, con `horaInicio < horaFin` (`CK_BLOQUE_EN_HORARIO_ImparticionCompleta`).
 
 El horario referencia la autorización concreta de `COORDINADOR_EN_PROGRAMA` mediante coordinador, programa y fecha de inicio. La API busca la autorización vigente con permiso `puedeGenerar = true` y conserva la fecha de inicio de esa autorización en el horario.
 
-La validación de solapamientos de aulas (RII04) se aplicará cuando exista programación completa y corresponde a M6.
+Los solapamientos se impiden también en PostgreSQL, con dos restricciones de exclusión sobre el intervalo `tsrange(fecha + horaInicio, fecha + horaFin, '[)')` (extensión `btree_gist`):
+
+- `EX_BLOQUE_EN_HORARIO_AulaSinSolapes`: misma aula (RII04).
+- `EX_BLOQUE_EN_HORARIO_HorarioSinSolapes`: mismo horario, aunque cambie el aula.
+
+Se mantiene el índice único `UX_BLOQUE_EN_HORARIO_AulaFechaHoraInicio`, que corresponde a la clave alternativa `(idAula, fecha, horaInicio)` del diseño. Las restricciones de exclusión también actúan ante altas simultáneas: la segunda espera a la primera y se rechaza si esta confirma.
 
 ## Notas de implementación
 
-- La API valida en este orden: formato de la solicitud (`400`), programa y coordinador (`404`), autorización del coordinador (`403`), existencia de los bloques (`404`) y reglas de composición (`409`). Si hay varios problemas, se informa el primero.
+- La API valida en este orden: formato de la solicitud (`400`), programa y coordinador (`404`), autorización del coordinador (`403`), existencia de los bloques y de las aulas (`404`) y reglas de composición y solapamiento (`409`). Si hay varios problemas, se informa el primero.
 - La autorización se resuelve con la fecha actual del servidor (UTC): se usa una vigente con `puedeGenerar = true` y, si hay varias, la de inicio más reciente. Una que vence hoy sigue vigente hoy.
 - `GET /api/horarios` usa la paginación común y devuelve cada horario con sus bloques, igual que la consulta individual, del más reciente al más antiguo. El filtro `periodoAcademico` compara el texto exacto, sin espacios en los extremos.
 - Dentro de un horario, los bloques se devuelven ordenados por fecha y descripción.
@@ -117,7 +129,7 @@ La validación de solapamientos de aulas (RII04) se aplicará cuando exista prog
 
 ## Errores esperados
 
-- `400`: periodo vacío, lista vacía, UUID inválido o fecha ausente.
-- `404`: programa, coordinador o bloque inexistente.
+- `400`: periodo vacío, lista vacía, UUID inválido, fecha ausente, programación incompleta (`horaInicio`, `horaFin` y `aulaId` no van juntos), hora mal formada o `horaInicio` no anterior a `horaFin`.
+- `404`: programa, coordinador, bloque o aula inexistente.
 - `403`: el coordinador no tiene autorización vigente o permiso de generación para el programa.
-- `409`: bloque no asociado al programa, duplicación de la combinación horario-bloque-fecha o conflicto con las reglas de integridad.
+- `409`: bloque no asociado al programa, duplicación de la combinación horario-bloque-fecha, impartición solapada con otra del mismo horario, aula ocupada en ese intervalo o conflicto con las reglas de integridad.

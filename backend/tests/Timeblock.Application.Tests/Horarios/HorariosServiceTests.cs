@@ -412,4 +412,93 @@ public sealed class HorariosServiceTests
         await Assert.ThrowsAsync<InvalidRequestException>(
             () => Listar(new HorarioFilter(Estado: (EstadoHorario)99)));
     }
+
+    // ---------------------------------------------------- Imparticiones (M6-07)
+
+    private static readonly TimeOnly Ocho = new(8, 0);
+    private static readonly TimeOnly Diez = new(10, 0);
+
+    private Guid SembrarAula()
+    {
+        Guid aula = Guid.NewGuid();
+        _repositorio.Aulas.Add(aula);
+        return aula;
+    }
+
+    [Fact]
+    public async Task Crear_ConImparticionCompleta_GuardaHorasAulaYElPeriodoDelHorario()
+    {
+        Guid aula = SembrarAula();
+
+        HorarioDetalle detalle = await Crear(new BloqueEnHorarioCommand(_teoria.Id, Fecha1, Ocho, Diez, aula));
+
+        BloqueEnHorario imparticion = Assert.Single(detalle.Horario.Bloques);
+        Assert.Equal(Ocho, imparticion.HoraInicio);
+        Assert.Equal(Diez, imparticion.HoraFin);
+        Assert.Equal(aula, imparticion.AulaId);
+        Assert.Equal("2026-2027", imparticion.PeriodoImp);
+    }
+
+    public static TheoryData<TimeOnly?, TimeOnly?, bool> ProgramacionesParciales => new()
+    {
+        { new TimeOnly(8, 0), null, true },
+        { null, new TimeOnly(10, 0), true },
+        { new TimeOnly(8, 0), new TimeOnly(10, 0), false },
+        { null, null, true },
+    };
+
+    [Theory]
+    [MemberData(nameof(ProgramacionesParciales))]
+    public async Task Crear_ConProgramacionParcial_LanzaSolicitudInvalidaSinConsultar(
+        TimeOnly? inicio,
+        TimeOnly? fin,
+        bool conAula)
+    {
+        var bloque = new BloqueEnHorarioCommand(_teoria.Id, Fecha1, inicio, fin, conAula ? Guid.NewGuid() : null);
+
+        await Assert.ThrowsAsync<InvalidRequestException>(() => Crear(bloque));
+
+        Assert.Equal(0, _repositorio.Consultas);
+    }
+
+    [Theory]
+    [InlineData(10, 10)]
+    [InlineData(10, 8)]
+    public async Task Crear_ConIntervaloVacioOInvertido_LanzaSolicitudInvalida(int inicio, int fin)
+    {
+        var bloque = new BloqueEnHorarioCommand(
+            _teoria.Id, Fecha1, new TimeOnly(inicio, 0), new TimeOnly(fin, 0), SembrarAula());
+
+        await Assert.ThrowsAsync<InvalidRequestException>(() => Crear(bloque));
+
+        Assert.Empty(_repositorio.Horarios);
+    }
+
+    [Fact]
+    public async Task Crear_ConAulaVacia_LanzaSolicitudInvalida()
+    {
+        await Assert.ThrowsAsync<InvalidRequestException>(() => Crear(
+            new BloqueEnHorarioCommand(_teoria.Id, Fecha1, Ocho, Diez, Guid.Empty)));
+    }
+
+    [Fact]
+    public async Task Crear_ConAulaInexistente_LanzaNoEncontradoYNoGuardaNada()
+    {
+        var excepcion = await Assert.ThrowsAsync<ResourceNotFoundException>(() => Crear(
+            new BloqueEnHorarioCommand(_teoria.Id, Fecha1, Ocho, Diez, Guid.NewGuid())));
+
+        Assert.Contains("aula", excepcion.Message);
+        Assert.Empty(_repositorio.Horarios);
+    }
+
+    [Fact]
+    public async Task Crear_ConClasesSolapadasEnElMismoHorario_LanzaConflictoYNoGuardaNada()
+    {
+        var excepcion = await Assert.ThrowsAsync<DomainException>(() => Crear(
+            new BloqueEnHorarioCommand(_teoria.Id, Fecha1, Ocho, Diez, SembrarAula()),
+            new BloqueEnHorarioCommand(_practica.Id, Fecha1, new TimeOnly(9, 0), new TimeOnly(11, 0), SembrarAula())));
+
+        Assert.Equal(TipoErrorDominio.Conflicto, excepcion.Tipo);
+        Assert.Empty(_repositorio.Horarios);
+    }
 }
