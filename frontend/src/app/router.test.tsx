@@ -16,6 +16,7 @@ const modules = [
   { link: "Matrícula", href: "/matricula" },
   { link: "Bloques de contenido", href: "/bloques" },
   { link: "Horarios", href: "/horarios" },
+  { link: "Aulas", href: "/aulas" },
 ];
 
 describe("navegación", () => {

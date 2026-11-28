@@ -3,7 +3,7 @@
 **Requisitos relacionados:** RI16 (§7.2.13 del diseño de la base de datos).  
 **Tarea:** M6-06, issue #87.  
 **Convenciones comunes:** [Contrato de la API](../contrato-api.md).  
-**Estado:** API implementada en el backend (`AulasController`, `AulasService`, `AulaRepository`) con los topes propuestos de 100 caracteres y capacidad 1000. Quedan pendientes la pantalla, los permisos (#84) y las decisiones abiertas al final, en [Decisiones pendientes](#decisiones-pendientes).
+**Estado:** API y pantalla implementadas (`AulasController`, `AulasService`, `AulaRepository` en el backend; listado, alta y edición en el frontend), con los topes propuestos de 100 caracteres y capacidad 1000. Quedan pendientes los permisos reales (#84) y las decisiones abiertas al final, en [Decisiones pendientes](#decisiones-pendientes). Mientras #84 no exista, la pantalla oculta las acciones de gestión a los roles sin permiso, pero el backend no aplica autorización; ese control no sustituye al del servidor.
 
 Un aula se describe con el edificio donde está y su capacidad. La tabla `AULA` ya existe en la base de datos (`idAula`, `edificio`, `capacidad`, con la restricción `CK_AULA_CapacidadPositiva`); esta tarea añade la API y la pantalla para registrarlas, editarlas y consultarlas.
 
@@ -102,6 +102,8 @@ Propuesta, pendiente de la implementación de cuentas y sesión (#84) y de que s
 Los coordinadores necesitan ver las aulas al completar las imparticiones de un horario (M6-07), y los estudiantes y coordinadores consultan la disponibilidad de aulas (M6-12). Sin sesión válida la API responde `401`; con sesión pero sin permiso, `403`. Los permisos se comprueban en el servidor, no solo ocultando opciones en la interfaz.
 
 Mientras #84 no exista, estos endpoints no comprueban permisos, igual que el resto de la API de M4. Queda registrado en `AulasController` para activarlos después, y las pruebas de acceso permitido y denegado (401 y 403) se añadirán entonces.
+
+La pantalla consulta `/api/sesion` de forma provisional: con `401` muestra el aviso de inicio de sesión y, mientras el endpoint no exista, interpreta el `404` como acceso de gestión para no bloquear la funcionalidad. Ese comportamiento deberá retirarse al activar #84; no es un control de seguridad.
 
 ## Fuera de alcance de esta tarea
 
