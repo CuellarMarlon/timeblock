@@ -261,6 +261,10 @@ dotnet ef database update --project backend/src/Timeblock.Infrastructure/Timeblo
 - En `BLOQUE_EN_HORARIO`, la fecha es obligatoria; hora, periodo de impartición
   y aula son nulos en M4, o se informan juntos con horas válidas cuando exista
   una impartición completa.
+- Las fechas que se referencian se dan de alta en `FECHA` al guardar, con
+  `INSERT … ON CONFLICT DO NOTHING` y en la misma transacción que el resto de
+  los cambios. Dos guardados simultáneos con la misma fecha nueva no fallan, y
+  si el guardado se rechaza la fecha tampoco queda.
 
 ### Pruebas PostgreSQL de Infrastructure
 

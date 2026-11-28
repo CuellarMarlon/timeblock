@@ -31,19 +31,55 @@ public sealed class TimeblockDbContext(
     public DbSet<AulaRecord> Aulas => Set<AulaRecord>();
     public DbSet<EsquemaLlaveRecord> EsquemaLlave => Set<EsquemaLlaveRecord>();
 
+    /// <summary>
+    /// Guarda los cambios dando de alta antes en FECHA las fechas que
+    /// referencian. Si no hay una transacción abierta, abre una para que el
+    /// alta de las fechas y el resto de los cambios se confirmen o se deshagan
+    /// juntos.
+    /// </summary>
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        EnsureReferencedDates();
-        try { return base.SaveChanges(acceptAllChangesOnSuccess); }
-        catch (DbUpdateException ex) when (EsRegistroInactivo(ex))
-        { throw new ResourceConflictException("No se puede usar un registro inactivo para esta operación.", ex); }
+        DateOnly[] fechas = GetReferencedDatesNotTracked();
+        if (fechas.Length == 0 || Database.CurrentTransaction is not null)
+        {
+            InsertarFechas(fechas);
+            return Guardar(acceptAllChangesOnSuccess);
+        }
+
+        using var transaccion = Database.BeginTransaction();
+        InsertarFechas(fechas);
+        int filas = Guardar(acceptAllChangesOnSuccess);
+        transaccion.Commit();
+        return filas;
     }
 
     public override async Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default)
     {
-        await EnsureReferencedDatesAsync(cancellationToken);
+        DateOnly[] fechas = GetReferencedDatesNotTracked();
+        if (fechas.Length == 0 || Database.CurrentTransaction is not null)
+        {
+            await InsertarFechasAsync(fechas, cancellationToken);
+            return await GuardarAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        await using var transaccion = await Database.BeginTransactionAsync(cancellationToken);
+        await InsertarFechasAsync(fechas, cancellationToken);
+        int filas = await GuardarAsync(acceptAllChangesOnSuccess, cancellationToken);
+        await transaccion.CommitAsync(cancellationToken);
+        return filas;
+    }
+
+    private int Guardar(bool acceptAllChangesOnSuccess)
+    {
+        try { return base.SaveChanges(acceptAllChangesOnSuccess); }
+        catch (DbUpdateException ex) when (EsRegistroInactivo(ex))
+        { throw new ResourceConflictException("No se puede usar un registro inactivo para esta operación.", ex); }
+    }
+
+    private async Task<int> GuardarAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+    {
         try { return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken); }
         catch (DbUpdateException ex) when (EsRegistroInactivo(ex))
         { throw new ResourceConflictException("No se puede usar un registro inactivo para esta operación.", ex); }
@@ -66,52 +102,34 @@ public sealed class TimeblockDbContext(
         base.OnModelCreating(modelBuilder);
     }
 
-    private void EnsureReferencedDates()
+    /// <summary>
+    /// Da de alta en FECHA las fechas indicadas con <c>ON CONFLICT DO
+    /// NOTHING</c>. Si otra transacción está dando de alta la misma fecha,
+    /// PostgreSQL espera a que termine y no falla por la clave primaria, como
+    /// ocurría al consultar primero y luego insertar.
+    /// </summary>
+    private void InsertarFechas(DateOnly[] fechas)
     {
-        DateOnly[] missingDates = GetReferencedDatesNotTracked();
-        if (missingDates.Length == 0)
+        if (fechas.Length > 0)
         {
-            return;
-        }
-
-        HashSet<DateOnly> existingDates = Fechas
-            .AsNoTracking()
-            .Where(fecha => missingDates.Contains(fecha.Fecha))
-            .Select(fecha => fecha.Fecha)
-            .ToHashSet();
-
-        foreach (DateOnly fecha in missingDates)
-        {
-            if (!existingDates.Contains(fecha))
-            {
-                Fechas.Add(new FechaRecord { Fecha = fecha });
-            }
+            Database.ExecuteSql(InsertarFechasSql(fechas));
         }
     }
 
-    private async Task EnsureReferencedDatesAsync(CancellationToken cancellationToken)
+    private async Task InsertarFechasAsync(DateOnly[] fechas, CancellationToken cancellationToken)
     {
-        DateOnly[] missingDates = GetReferencedDatesNotTracked();
-        if (missingDates.Length == 0)
+        if (fechas.Length > 0)
         {
-            return;
-        }
-
-        HashSet<DateOnly> existingDates = (await Fechas
-                .AsNoTracking()
-                .Where(fecha => missingDates.Contains(fecha.Fecha))
-                .Select(fecha => fecha.Fecha)
-                .ToListAsync(cancellationToken))
-            .ToHashSet();
-
-        foreach (DateOnly fecha in missingDates)
-        {
-            if (!existingDates.Contains(fecha))
-            {
-                Fechas.Add(new FechaRecord { Fecha = fecha });
-            }
+            await Database.ExecuteSqlAsync(InsertarFechasSql(fechas), cancellationToken);
         }
     }
+
+    private static FormattableString InsertarFechasSql(DateOnly[] fechas) =>
+        $"""
+        INSERT INTO "FECHA" ("fecha")
+        SELECT unnest({fechas})
+        ON CONFLICT ("fecha") DO NOTHING
+        """;
 
     private DateOnly[] GetReferencedDatesNotTracked()
     {
