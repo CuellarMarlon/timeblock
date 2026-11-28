@@ -29,6 +29,11 @@ public static class JsonConfiguration
         options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
 
+        // Los valores numéricos deben llegar como números JSON: el valor web
+        // por defecto acepta "30" para un int, pero el contrato no permite
+        // números escritos como texto.
+        options.NumberHandling = JsonNumberHandling.Strict;
+
         // Mantiene legibles los acentos y escapa caracteres de marcado HTML.
         options.Encoder = JavaScriptEncoder.Create(
             UnicodeRanges.BasicLatin,
