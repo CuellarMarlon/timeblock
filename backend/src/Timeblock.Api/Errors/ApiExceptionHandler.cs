@@ -62,17 +62,26 @@ internal sealed class ApiExceptionHandler(
 
         httpContext.Response.StatusCode = status;
 
+        var problema = new ProblemDetails
+        {
+            Status = status,
+            Title = ErroresHttp.TituloDe(status),
+            Detail = detalle,
+            Type = ErroresHttp.TipoProblema,
+        };
+
+        // Los errores de campo van en "errors", como los de validación de
+        // modelo del contrato; las claves ya vienen en camelCase.
+        if (exception is ValidacionCamposException campos)
+        {
+            problema.Extensions["errors"] = campos.Errores;
+        }
+
         // La excepción no se entrega al escritor para no exponer su contenido.
         await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
             HttpContext = httpContext,
-            ProblemDetails = new ProblemDetails
-            {
-                Status = status,
-                Title = ErroresHttp.TituloDe(status),
-                Detail = detalle,
-                Type = ErroresHttp.TipoProblema,
-            },
+            ProblemDetails = problema,
         });
 
         return true;

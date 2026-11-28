@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Timeblock.Api.Configuration;
 using Timeblock.Api.Errors;
 using Timeblock.Application;
+using Timeblock.Application.Aulas;
 using Timeblock.Application.Catalogo;
 using Timeblock.Application.Bloques;
 using Timeblock.Application.Horarios;
@@ -19,6 +20,7 @@ builder.Services.AddDbContext<TimeblockDbContext>(options =>
     options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<ICatalogoRepository, CatalogoRepository>();
+builder.Services.AddScoped<IAulaRepository, AulaRepository>();
 builder.Services.AddScoped<IBloqueRepository, BloqueRepository>();
 builder.Services.AddScoped<IPersonaRepository, PersonaRepository>();
 builder.Services.AddScoped<IHorarioRepository, HorarioRepository>();

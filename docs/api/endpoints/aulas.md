@@ -3,7 +3,7 @@
 **Requisitos relacionados:** RI16 (§7.2.13 del diseño de la base de datos).  
 **Tarea:** M6-06, issue #87.  
 **Convenciones comunes:** [Contrato de la API](../contrato-api.md).  
-**Estado:** propuesta para acordar entre backend y frontend. Las decisiones que siguen abiertas están al final, en [Decisiones pendientes](#decisiones-pendientes).
+**Estado:** API implementada en el backend (`AulasController`, `AulasService`, `AulaRepository`) con los topes propuestos de 100 caracteres y capacidad 1000. Quedan pendientes la pantalla, los permisos (#84) y las decisiones abiertas al final, en [Decisiones pendientes](#decisiones-pendientes).
 
 Un aula se describe con el edificio donde está y su capacidad. La tabla `AULA` ya existe en la base de datos (`idAula`, `edificio`, `capacidad`, con la restricción `CK_AULA_CapacidadPositiva`); esta tarea añade la API y la pantalla para registrarlas, editarlas y consultarlas.
 
@@ -101,7 +101,7 @@ Propuesta, pendiente de la implementación de cuentas y sesión (#84) y de que s
 
 Los coordinadores necesitan ver las aulas al completar las imparticiones de un horario (M6-07), y los estudiantes y coordinadores consultan la disponibilidad de aulas (M6-12). Sin sesión válida la API responde `401`; con sesión pero sin permiso, `403`. Los permisos se comprueban en el servidor, no solo ocultando opciones en la interfaz.
 
-Mientras #84 no exista, estos endpoints no comprueban permisos, igual que el resto de la API de M4. Hay que dejarlo registrado para activarlos después.
+Mientras #84 no exista, estos endpoints no comprueban permisos, igual que el resto de la API de M4. Queda registrado en `AulasController` para activarlos después, y las pruebas de acceso permitido y denegado (401 y 403) se añadirán entonces.
 
 ## Fuera de alcance de esta tarea
 

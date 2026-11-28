@@ -49,8 +49,8 @@ public sealed class FechaRecord
 }
 
 /// <summary>
-/// Tabla de aulas del esquema aprobado. La gestión de aulas no forma parte de
-/// los casos de uso M4, pero BLOQUE_EN_HORARIO referencia esta relación.
+/// Tabla de aulas del esquema aprobado. <see cref="AulaRepository"/> la gestiona
+/// (M6-06) y BLOQUE_EN_HORARIO la referencia.
 /// </summary>
 public sealed class AulaRecord
 {
