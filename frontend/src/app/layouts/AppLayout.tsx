@@ -39,6 +39,9 @@ export function AppLayout() {
             <li>
               <NavLink to="/horarios">Horarios</NavLink>
             </li>
+            <li>
+              <NavLink to="/aulas">Aulas</NavLink>
+            </li>
           </ul>
         </nav>
 

@@ -1,5 +1,8 @@
 import { createBrowserRouter, type RouteObject } from "react-router-dom";
 import { AppLayout } from "./layouts/AppLayout";
+import { AulaEditarPage } from "./pages/AulaEditarPage";
+import { AulaNuevaPage } from "./pages/AulaNuevaPage";
+import { AulasPage } from "./pages/AulasPage";
 import { BloqueDetallePage } from "./pages/BloqueDetallePage";
 import { BloqueEditarPage } from "./pages/BloqueEditarPage";
 import { BloqueNuevoPage } from "./pages/BloqueNuevoPage";
@@ -30,6 +33,9 @@ export const routes: RouteObject[] = [
       { path: "horarios", element: <HorariosPage /> },
       { path: "horarios/nuevo", element: <HorarioNuevoPage /> },
       { path: "horarios/:horarioId", element: <HorarioDetallePage /> },
+      { path: "aulas", element: <AulasPage /> },
+      { path: "aulas/nueva", element: <AulaNuevaPage /> },
+      { path: "aulas/:aulaId/editar", element: <AulaEditarPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
